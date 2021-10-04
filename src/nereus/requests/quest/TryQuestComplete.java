@@ -1,20 +1,24 @@
-package nereus.requests;
+package nereus.requests.quest;
 
-import com.google.common.collect.Multimap;
 import nereus.db.objects.Area;
 import nereus.db.objects.Item;
 import nereus.db.objects.Quest;
 import nereus.db.objects.QuestReward;
 import nereus.dispatcher.IRequest;
 import nereus.dispatcher.RequestException;
-import nereus.world.Users;
 import nereus.world.World;
+
 import com.google.common.collect.HashMultimap;
 import it.gotoandplay.smartfoxserver.SmartFoxServer;
 import it.gotoandplay.smartfoxserver.data.Room;
 import it.gotoandplay.smartfoxserver.data.User;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
 import java.util.Map.Entry;
 import jdbchelper.JdbcException;
 import jdbchelper.QueryResult;
@@ -23,8 +27,8 @@ import net.sf.json.JSONObject;
 public class TryQuestComplete implements IRequest
 {
    private static final Random rand = new Random();
-   private static final List<Integer> doom = Arrays.asList(3073, 3074, 3075, 3076);
-   private static final List<Integer> destiny = Arrays.asList(3128, 3129, 3130, 3131);
+   private static final List<Integer> doom = Arrays.asList(new Integer[]{Integer.valueOf(3073), Integer.valueOf(3074), Integer.valueOf(3075), Integer.valueOf(3076)});
+   private static final List<Integer> destiny = Arrays.asList(new Integer[]{Integer.valueOf(3128), Integer.valueOf(3129), Integer.valueOf(3130), Integer.valueOf(3131)});
    private static final int boost = 19189;
    private static final int potion = 18927;
 
@@ -33,163 +37,127 @@ public class TryQuestComplete implements IRequest
    {
       int questId = Integer.parseInt(params[0]);
       int itemId = Integer.parseInt(params[1]);
-
 //      Set userQuests = (Set)user.properties.get("quests");
-      Map<Integer, Integer> factions = (Map)user.properties.get(Users.FACTIONS);
-      Set<Integer> userQuests = (Set)user.properties.get(Users.QUESTS);
-
-      Quest quest = world.quests.get(questId);
-      JSONObject ccqr = new JSONObject();
-
-      ccqr.put("cmd", "poqwjeijgfas"); // ccqr
-      ccqr.put("QuestID", questId);
-      ccqr.put("bSuccess", 0);
-
-      if (user.properties.get(Users.LOAD) != null && (Boolean)user.properties.get(Users.LOAD)) {
-         if (!quest.locations.isEmpty()) {
-            int mapId = (world.areas.get(room.getName().split("-")[0])).getId();
-            if (!quest.locations.contains(mapId)) {
-               world.send(ccqr, user);
-               world.users.log(user, "Invalid Quest Complete", "Quest complete for #" + questId + "  triggered at different location: " + room.getName() + " (" + mapId + ")");
-               return;
-            }
+      Set<Integer> userQuests = (Set<Integer>)user.properties.get("quests");
+      Quest quest = (Quest)world.quests.get(Integer.valueOf(questId));
+      if(!quest.locations.isEmpty()) {
+         int ccqr = ((Area)world.areas.get(room.getName().split("-")[0])).getId();
+         if(!quest.locations.contains(Integer.valueOf(ccqr))) {
+            world.users.log(user, "Invalid Quest Complete", "Quest complete triggered at different location.");
+            return;
          }
-
-//         JSONObject rewardObj = new JSONObject();
-         JSONObject rewardObj;
-
-         if (quest.isUpgrade() && (Integer)user.properties.get(Users.UPGRADE_DAYS) < 0) {
-            world.send(ccqr, user);
-            world.users.log(user, "Packet Edit [TryQuestComplete]", "Attempted to complete member-only quest.");
-         } else if (quest.getFactionId() > 1 && factions.containsKey(quest.getFactionId()) && (Integer)factions.get(quest.getFactionId()) < quest.getReqReputation()) {
-            world.send(ccqr, user);
-            world.users.log(user, "Packet Edit [TryQuestComplete]", "Attempted to complete a quest without required reputation.");
-         } else {
-            if (!userQuests.contains(questId) && !doom.contains(questId) && !destiny.contains(questId)) {
-               world.users.log(user, "Packet Edit [TryQuestComplete]", "Attempted to complete an unaccepted quest: " + quest.getName());
-            } else {
-               if (!quest.getField().isEmpty() && world.users.getAchievement(quest.getField(), quest.getIndex(), user) != 0) {
-                  world.send(ccqr, user);
-                  world.users.log(user, "Packet Edit [TryQuestComplete]", "Failed to pass achievement validation while attempting to complete quest: " + quest.getName());
-                  world.send(new String[]{"server", "Quest daily/monthly limit has been reached. Please try again later."}, user);
-                  return;
-               }
-
-               int randomKey;
-               if ((doom.contains(questId) || destiny.contains(questId)) && (Integer)user.properties.get(Users.LEVEL) < quest.getLevel()) {
-                  rewardObj = new JSONObject();
-                  rewardObj.put("cmd", "aowkkqklwkass"); //popupmsg
-                  rewardObj.put("strMsg", "You need to be atleast level " + quest.getLevel() + " to spin the wheel!");
-                  rewardObj.put("strGlow", "red,medium");
-                  rewardObj.put("bitSuccess", 0);
-                  world.send(rewardObj, user);
-                  return;
-               }
-
-               if (world.users.turnInItems(user, quest.requirements)) {
-                  if (!doom.contains(questId) && !destiny.contains(questId)) {
-                     if (quest.rewards.size() > 0) {
-                        Multimap<Integer, Integer> randomItems = HashMultimap.create();
-                        Multimap<Integer, Integer> chooseItems = HashMultimap.create();
-                        Iterator var27 = quest.rewards.entries().iterator();
-                        Iterator<Map.Entry<Integer, QuestReward>> iterate = quest.rewards.entries().iterator();
-
-                        while (var27.hasNext()) {
-                           Entry<Integer, QuestReward> entry = (Entry)var27.next();
-                           QuestReward info = (QuestReward)entry.getValue();
-                           String var36 = info.type;
-                           byte var38 = -1;
-                           switch(var36.hashCode()) {
-                              case 67:
-                                 if (var36.equals("C")) {
-                                    var38 = 0;
-                                 }
-                                 break;
-                              case 82:
-                                 if (var36.equals("R")) {
-                                    var38 = 1;
-                                 }
-                                 break;
-                              case 83:
-                                 if (var36.equals("S")) {
-                                    var38 = 3;
-                                 }
-                                 break;
-                              case 3492901:
-                                 if (var36.equals("rand")) {
-                                    var38 = 2;
-                                 }
-                           }
-
-                           switch(var38) {
-                              case 0:
-                                 if (itemId == info.itemId) {
-                                    world.users.dropItem(user, info.itemId, info.quantity);
-                                 }
-                                 break;
-                              case 1:
-                              case 2:
-                                 randomItems.put(info.itemId, info.quantity);
-                                 break;
-                              case 3:
-                              default:
-                                 world.users.dropItem(user, info.itemId, info.quantity);
-                           }
-                        }
-
-                        if (randomItems.size() > 0) {
-                           List<Integer> keys = new ArrayList(randomItems.keySet());
-                           randomKey = (Integer)keys.get(rand.nextInt(keys.size()));
-                           Object[] qty = randomItems.get(randomKey).toArray();
-                           int randomValue = (Integer)qty[rand.nextInt(qty.length)];
-                           world.users.dropItem(user, randomKey, randomValue);
-                        }
-                     }
-                  } else {
-                     if (doom.contains(quest.getId())) this.doWheel(user, world, "Doom");
-                     if (destiny.contains(quest.getId())) this.doWheel(user, world, "Destiny");
-                  }
-
-                  world.users.giveRewards(user, quest.getExperience(), quest.getGold(), quest.getClassPoints(), quest.getReputation(), quest.getFactionId(), user.getUserId(), "p");
-                  rewardObj = new JSONObject();
-                  rewardObj.put("intGold", quest.getGold());
-                  rewardObj.put("intExp", quest.getExperience());
-                  rewardObj.put("iCP", quest.getClassPoints());
-
-                  if (quest.getFactionId() > 0) {
-                     rewardObj.put("iRep", quest.getReputation());
-                  }
-
-//                  if (userQuests.contains(questId)) {
-//                     world.db.getJdbc().run("DELETE FROM users_quests WHERE UserID = ? AND QuestID = ?", user.properties.get(Users.DATABASE_ID), questId);
-//                     userQuests.remove(questId);
-//                  }
-
-//                  if (quest.getAchievementId() > 0) {
-//                     Achievement achievement = world.achievements.get(quest.getAchievementId());
-//                     world.users.addAchievement(user, achievement);
-//                  }
-
-                  ccqr.put("rewardObj", rewardObj);
-                  ccqr.put("sName", quest.getName());
-                  ccqr.put("bSuccess", 1);
-
-                  if (quest.getSlot() > 0 && world.users.getQuestValue(user, quest.getSlot()) < quest.getValue()) {
-                     world.users.setQuestValue(user, quest.getSlot(), quest.getValue());
-                  }
-
-                  if (!quest.getField().isEmpty()) {
-                     world.users.setAchievement(quest.getField(), quest.getIndex(), 1, user);
-                  }
-
-                  userQuests.remove(questId);
-               }
-            }
-            world.send(ccqr, user);
-         }
-      } else {
-         throw new RequestException("Character is still being loaded!");
       }
+
+      JSONObject ccqr1 = new JSONObject();
+      ccqr1.put("cmd", "ccqr");
+      ccqr1.put("QuestID", Integer.valueOf(questId));
+      if(!userQuests.contains(Integer.valueOf(questId)) && !doom.contains(Integer.valueOf(questId)) && !destiny.contains(Integer.valueOf(questId))) {
+         ccqr1.put("bSuccess", Integer.valueOf(0));
+         world.users.log(user, "Packet Edit [TryQuestComplete]", "Attempted to complete an unaccepted quest: " + quest.getName());
+      } else {
+         if(!quest.getField().isEmpty() && world.users.getAchievement(quest.getField(), quest.getIndex(), user) != 0) {
+            ccqr1.put("bSuccess", Integer.valueOf(0));
+            world.send(ccqr1, user);
+            world.users.log(user, "Packet Edit [TryQuestComplete]", "Failed to pass achievement validation while attempting to complete quest: " + quest.getName());
+            return;
+         }
+
+         if(world.users.turnInItems(user, quest.requirements)) {
+            if(doom.contains(Integer.valueOf(questId))) {
+               this.doWheel(user, world, "doom");
+            } else if(destiny.contains(Integer.valueOf(questId))) {
+               this.doWheel(user, world, "destiny");
+            } else if(quest.rewards.size() > 0) {
+               HashMultimap rewardObj = HashMultimap.create();
+               HashMultimap itemsPercentage = HashMultimap.create();
+               Iterator keys = quest.rewards.entries().iterator();
+
+               while(keys.hasNext()) {
+                  Entry randomKey = (Entry)keys.next();
+                  QuestReward qty = (QuestReward)randomKey.getValue();
+                  String randomValue = qty.type;
+                  byte rate = -1;
+                  switch(randomValue.hashCode()) {
+                     case 67:
+                        if(randomValue.equals("C")) {
+                           rate = 0;
+                        }
+                        break;
+                     case 82:
+                        if(randomValue.equals("R")) {
+                           rate = 1;
+                        }
+                        break;
+                     case 83:
+                        if(randomValue.equals("S")) {
+                           rate = 3;
+                        }
+                        break;
+                     case 3492901:
+                        if(randomValue.equals("rand")) {
+                           rate = 2;
+                        }
+                  }
+
+                  switch(rate) {
+                     case 0:
+                        if(itemId == qty.itemId) {
+                           world.users.dropItem(user, qty.itemId, qty.quantity);
+                        }
+                        break;
+                     case 1:
+                     case 2:
+                        rewardObj.put(Integer.valueOf(qty.itemId), Integer.valueOf(qty.quantity));
+                        itemsPercentage.put(Integer.valueOf(qty.itemId), Double.valueOf(qty.rate));
+                        break;
+                     case 3:
+                     default:
+                        world.users.dropItem(user, qty.itemId, qty.quantity);
+                  }
+               }
+
+               if(rewardObj.size() > 0) {
+                  ArrayList keys1 = new ArrayList(rewardObj.keySet());
+                  int randomKey1 = ((Integer)keys1.get(rand.nextInt(keys1.size()))).intValue();
+                  Object[] qty1 = rewardObj.get(Integer.valueOf(randomKey1)).toArray();
+                  int randomValue1 = ((Integer)qty1[rand.nextInt(qty1.length)]).intValue();
+                  Object[] rate1 = itemsPercentage.get(Integer.valueOf(randomKey1)).toArray();
+                  Double rateValue = (Double)rate1[rand.nextInt(rate1.length)];
+                  if(Math.random() > rateValue.doubleValue()) {
+                     SmartFoxServer.log.severe("User chance test: " + rateValue);
+                  } else {
+                     world.users.dropItem(user, randomKey1, randomValue1);
+                  }
+               }
+            }
+
+            world.users.giveRewards(user, quest.getExperience(), quest.getGold(), quest.getClassPoints(), quest.getReputation(), quest.getFactionId(), user.getUserId(), "p");
+            JSONObject rewardObj1 = new JSONObject();
+            rewardObj1.put("intGold", Integer.valueOf(quest.getGold()));
+            rewardObj1.put("intExp", Integer.valueOf(quest.getExperience()));
+            rewardObj1.put("iCP", Integer.valueOf(quest.getClassPoints()));
+            if(quest.getFactionId() > 0) {
+               rewardObj1.put("iRep", Integer.valueOf(quest.getReputation()));
+            }
+
+            ccqr1.put("rewardObj", rewardObj1);
+            ccqr1.put("sName", quest.getName());
+            if (quest.getSlot() > 0 && world.users.getQuestValue(user, quest.getSlot()) < quest.getValue()) {
+               world.users.setQuestValue(user, quest.getSlot(), quest.getValue());
+            }
+
+            if(!quest.getField().isEmpty()) {
+               world.users.setAchievement(quest.getField(), quest.getIndex(), 1, user);
+            }
+
+            userQuests.remove(Integer.valueOf(questId));
+         } else {
+            ccqr1.put("bSuccess", Integer.valueOf(0));
+            world.users.log(user, "Packet Edit [TryQuestComplete]", "Failed to pass turn in validation while attempting to complete quest: " + quest.getName());
+         }
+      }
+
+      world.send(ccqr1, user);
    }
 
    private void doWheel(User user, World world, String wheelType) throws RequestException {

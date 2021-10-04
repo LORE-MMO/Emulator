@@ -1,22 +1,52 @@
 package nereus.discord;
 
-import com.github.kaktushose.jda.commands.entities.JDACommandsBuilder;
 import nereus.config.ConfigData;
+import nereus.discord.events.FetchCommand;
+import nereus.discord.events.ReloadAccess;
+import nereus.discord.events.ReloadCommands;
+import nereus.discord.events.ReloadSettings;
+import nereus.discord.events.ReloadUsers;
 import nereus.world.World;
-import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.JDABuilder;
 
-import javax.security.auth.login.LoginException;
+import it.gotoandplay.smartfoxserver.SmartFoxServer;
+import it.gotoandplay.smartfoxserver.data.Room;
+import it.gotoandplay.smartfoxserver.data.User;
 
-public class Bot {
-    public static JDA jda;
+import java.net.DatagramSocket;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
-    public Bot(String token, World world)  {
-        try {
-            jda = JDABuilder.createDefault(token).build();
-            JDACommandsBuilder.start(jda, "?", true, true, true);
-        } catch (LoginException e) {
-            e.printStackTrace();
-        }
+import org.javacord.api.DiscordApi;
+import org.javacord.api.DiscordApiBuilder;
+import org.javacord.api.entity.activity.ActivityType;
+import org.javacord.api.entity.channel.TextChannel;
+import org.javacord.api.listener.message.MessageCreateListener;
+import org.javacord.api.util.logging.ExceptionLogger;
+import org.javacord.api.util.logging.FallbackLoggerConfiguration;
+
+public class Bot
+{
+    public DiscordApi api;
+    public World world;
+    public static HashMap<String, Map.Entry<String, Integer>> commands = new HashMap();
+    public static HashMap<String, Map.Entry<String, Integer>> users = new HashMap();
+    public static HashMap<String, String> settings = new HashMap();
+    public static HashMap<Integer, String> accesses = new HashMap();
+
+    public Bot(String token, World world) {
+        this.world = world;
+        new ReloadSettings(world);
+        new ReloadAccess(world);
+        new ReloadCommands(world);
+        new ReloadUsers(world);
+        this.init(token);
+    }
+
+    private void init(String token) {
+        FallbackLoggerConfiguration.setDebug(false);
+        api = new DiscordApiBuilder().setToken(token).login().join();
+        api.updateActivity(ActivityType.LISTENING, "$help");
+        api.addMessageCreateListener(new FetchCommand(this.world));
     }
 }

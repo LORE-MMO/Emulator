@@ -2,6 +2,7 @@ package nereus;
 
 import nereus.config.ConfigData;
 import nereus.console.Console;
+import nereus.discord.Bot;
 import nereus.discord.Webhook;
 import nereus.dispatcher.IRequest;
 import nereus.dispatcher.RequestException;
@@ -26,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Handler;
+
 import net.sf.json.JSONObject;
 
 public class Aghatosune extends AbstractExtension
@@ -37,6 +39,7 @@ public class Aghatosune extends AbstractExtension
    private World world;
    private HashMap<String, Long> IPList = new HashMap();
    private HashMap<String, Integer> IPCounter = new HashMap();
+//   public Bot bot = new Bot(ConfigData.DISCORD_BOT_TOKEN);
    public Webhook webhook = new Webhook(ConfigData.DISCORD_SERVER_WEBHOOK);
 
    public Aghatosune() {

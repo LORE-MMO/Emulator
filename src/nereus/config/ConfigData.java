@@ -41,6 +41,7 @@ public class ConfigData {
 
    public static String DISCORD_BOT_AVATAR;
    public static String DISCORD_BOT_TOKEN;
+   public static String DISCORD_BOT_PREFIX;
 
    public static long DISCORD_GENERAL_CHANNELID;
    public static long DISCORD_LOGS_CHANNELID;
@@ -163,6 +164,7 @@ public class ConfigData {
 
          DISCORD_BOT_AVATAR = config.getProperty("discord.bot.avatar");
          DISCORD_BOT_TOKEN = config.getProperty("discord.bot.token");
+         DISCORD_BOT_PREFIX = config.getProperty("discord.bot.prefix");
 
          SERVER_GAME_LINK = config.getProperty("server.game.path");
 

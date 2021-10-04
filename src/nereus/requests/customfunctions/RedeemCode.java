@@ -10,13 +10,9 @@ import java.util.Date;
 import jdbchelper.JdbcException;
 import jdbchelper.QueryResult;
 import net.sf.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class RedeemCode implements IRequest
 {
-   private final Logger log = LoggerFactory.getLogger(RedeemCode.class);
-
    @Override
    public void process(String[] params, User user, World world, Room room) throws RequestException {
       String code = params[0].trim().toLowerCase();
@@ -101,7 +97,7 @@ public class RedeemCode implements IRequest
             if (world.db.jdbc.isInTransaction()) {
                world.db.jdbc.rollbackTransaction();
             }
-            this.log.error("Error in redeem transaction: " + je.getMessage());
+//            this.log.error("Error in redeem transaction: " + je.getMessage());
          }
          finally {
             if (world.db.jdbc.isInTransaction()) {

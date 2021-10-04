@@ -1535,9 +1535,11 @@ public class Users {
 //   }
 
    public int getQuestValue(User user, int index) {
+      if (index > 99) return Quests.lookAtValue((String)user.properties.get("quests2"), index - 100);
+      return Quests.lookAtValue((String)user.properties.get("quests1"), index);
 //      if (index > 99) return Quests.lookAtValue((String) user.properties.get(Users.QUESTS_2), (index - 100));
 //      return Quests.lookAtValue((String) user.properties.get(Users.QUESTS_1), index);
-      return index > 99 ? Quests.lookAtValue((String) user.properties.get("quests2"), index - 100) : Quests.lookAtValue((String) user.properties.get("quests1"), index);
+//      return index > 99 ? Quests.lookAtValue((String) user.properties.get("quests2"), index - 100) : Quests.lookAtValue((String) user.properties.get("quests1"), index);
    }
 
 //   public int getQuestValue(User user, int index) {

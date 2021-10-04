@@ -80,7 +80,7 @@ public class Quest {
          quest.reputation = rs.getInt("Reputation");
          quest.classPoints = rs.getInt("ClassPoints");
          quest.level = rs.getInt("Level");
-         quest.slot = rs.getInt("Slot");
+         quest.slot = rs.getInt("ChainID");
          quest.value = rs.getInt("Value");
          quest.index = rs.getInt("Index");
 
