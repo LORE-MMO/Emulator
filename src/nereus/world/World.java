@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -113,6 +114,7 @@ public class World {
     private AbstractExtension ext;
     private ScheduledExecutorService tasks;
     public Bot bot;
+    public static final Random RANDOM = new Random();
 
     public World(AbstractExtension ext, Zone zone) {
         super();

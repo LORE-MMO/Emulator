@@ -23,14 +23,17 @@ public class Quest {
    private int level;
    private int slot;
    private int value;
-   private int index;
+   private int index, coins;
+
    private String name;
    private String description;
    private String endText;
    private String rewardType;
    private String field;
+
    private boolean upgrade;
    private boolean once;
+
    public Multimap<Integer, QuestReward> rewards;
    public Map<Integer, Integer> reqd;
    public Map<Integer, Integer> requirements;
@@ -77,6 +80,7 @@ public class Quest {
          quest.reqClassPoints = rs.getInt("ReqClassPoints");
          quest.experience = rs.getInt("Experience");
          quest.gold = rs.getInt("Gold");
+         quest.coins = rs.getInt("Coins");
          quest.reputation = rs.getInt("Reputation");
          quest.classPoints = rs.getInt("ClassPoints");
          quest.level = rs.getInt("Level");
@@ -127,6 +131,10 @@ public class Quest {
 
    public int getGold() {
       return this.gold;
+   }
+
+   public int getCoins() {
+      return this.coins;
    }
 
    public int getReputation() {

@@ -27,8 +27,8 @@ import net.sf.json.JSONObject;
 public class TryQuestComplete implements IRequest
 {
    private static final Random rand = new Random();
-   private static final List<Integer> doom = Arrays.asList(new Integer[]{Integer.valueOf(3073), Integer.valueOf(3074), Integer.valueOf(3075), Integer.valueOf(3076)});
-   private static final List<Integer> destiny = Arrays.asList(new Integer[]{Integer.valueOf(3128), Integer.valueOf(3129), Integer.valueOf(3130), Integer.valueOf(3131)});
+   private static final List<Integer> doom = Arrays.asList(3073, 3074, 3075, 3076);
+   private static final List<Integer> destiny = Arrays.asList(3128, 3129, 3130, 3131);
    private static final int boost = 19189;
    private static final int potion = 18927;
 
@@ -131,17 +131,27 @@ public class TryQuestComplete implements IRequest
                }
             }
 
-            world.users.giveRewards(user, quest.getExperience(), quest.getGold(), quest.getClassPoints(), quest.getReputation(), quest.getFactionId(), user.getUserId(), "p");
+            world.users.giveRewards(user, quest.getExperience(), quest.getGold(), quest.getCoins(), quest.getClassPoints(), quest.getReputation(), quest.getFactionId(), user.getUserId(), "p");
+
+            JSONObject var16 = new JSONObject();
+            var16.put("cmd", "sellItem");
+            var16.put("intAmount", quest.getCoins());
+            var16.put("CharItemID", Integer.valueOf(user.hashCode()));
+            var16.put("bCoins", Integer.valueOf(1));
+            world.send(var16, user);
+
             JSONObject rewardObj1 = new JSONObject();
-            rewardObj1.put("intGold", Integer.valueOf(quest.getGold()));
-            rewardObj1.put("intExp", Integer.valueOf(quest.getExperience()));
-            rewardObj1.put("iCP", Integer.valueOf(quest.getClassPoints()));
-            if(quest.getFactionId() > 0) {
-               rewardObj1.put("iRep", Integer.valueOf(quest.getReputation()));
+            rewardObj1.put("intGold", quest.getGold());
+            rewardObj1.put("intExp", quest.getExperience());
+            rewardObj1.put("iCP", quest.getClassPoints());
+
+            if (quest.getFactionId() > 0) {
+               rewardObj1.put("iRep", quest.getReputation());
             }
 
             ccqr1.put("rewardObj", rewardObj1);
             ccqr1.put("sName", quest.getName());
+
             if (quest.getSlot() > 0 && world.users.getQuestValue(user, quest.getSlot()) < quest.getValue()) {
                world.users.setQuestValue(user, quest.getSlot(), quest.getValue());
             }

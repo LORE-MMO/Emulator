@@ -56,8 +56,8 @@ public class RequestCoin implements IDiscord
                     var16.put("cmd", "coinAdd");
                     var16.put("intAmount", Value);
                     var16.put("CharItemID", UserID);
-
                     world.send(var16, user);
+
                     world.db.jdbc.run("UPDATE users SET Coins = (Coins + ?) WHERE id = ?", Value, UserID);
                     world.send(new String[] {"server", "An in game staff has given you " + Value + " Coins."}, user);
 

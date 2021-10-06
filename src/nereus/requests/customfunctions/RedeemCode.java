@@ -88,7 +88,7 @@ public class RedeemCode implements IRequest
             world.users.dropItem(user, ItemID, Quantity);
             Earned = Earned + world.items.get(ItemID).getName() + " ";
          }
-         world.users.giveRewards(user, Exp, Gold, ClassPoints, 0, -1, user.getUserId(), "p");
+         world.users.giveRewards(user, Exp, Gold, 0, ClassPoints, 0, -1, user.getUserId(), "p");
          world.db.jdbc.beginTransaction();
          try {
             world.db.jdbc.run("INSERT INTO users_redeems (RedeemID, UserID) VALUES (?, ?)", RedeemID, user.properties.get("dbId"));

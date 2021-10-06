@@ -239,7 +239,7 @@ public class MonsterAI implements Runnable {
                this.world.users.dropItem(user, md.itemId, md.quantity);
             }
 
-            this.world.users.giveRewards(user, mon1.getExperience(), mon1.getGold(), mon1.getReputation(), 0, -1, this.mapId, "m");
+            this.world.users.giveRewards(user, mon1.getExperience(), mon1.getGold(), 0, mon1.getReputation(), 0, -1, this.mapId, "m");
          }
       }
    }

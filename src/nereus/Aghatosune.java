@@ -62,7 +62,7 @@ public class Aghatosune extends AbstractExtension
       this.world = new World(this, this.helper.getZone(this.getOwnerZone()));
       this.console.setWorld(this.world);
       this.console.setHelper(this.helper);
-      this.world.db.jdbc.run("UPDATE servers SET Online = 1 WHERE Name = ?", new Object[]{ConfigData.SERVER_NAME});
+      this.world.db.jdbc.run("UPDATE servers SET Online = 1 WHERE Name = ?", ConfigData.SERVER_NAME);
    }
 
    public void handleRequest(String cmd, ActionscriptObject ao, User user, int fromRoom) {

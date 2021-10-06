@@ -324,11 +324,11 @@ public class UserCommand implements IRequest {
             }
          }
       } else if(cmd.equals("addgold")) {
-         world.users.giveRewards(user, 0, Integer.parseInt(params[1]), 0, 0, -1, user.getUserId(), "p");
+         world.users.giveRewards(user, 0, Integer.parseInt(params[1]), 0, 0, 0, -1, user.getUserId(), "p");
       } else if(cmd.equals("addcp")) {
-         world.users.giveRewards(user, 0, 0, Integer.parseInt(params[1]), 0, -1, user.getUserId(), "p");
+         world.users.giveRewards(user, 0, 0, 0, Integer.parseInt(params[1]), 0, -1, user.getUserId(), "p");
       } else if(cmd.equals("addxp")) {
-         world.users.giveRewards(user, Integer.parseInt(params[1]), 0, 0, 0, -1, user.getUserId(), "p");
+         world.users.giveRewards(user, Integer.parseInt(params[1]), 0, 0,0, 0, -1, user.getUserId(), "p");
       } else if(cmd.equals("addcoin")) {
          int var15 = Integer.parseInt(params[1]);
          JSONObject var16 = new JSONObject();
