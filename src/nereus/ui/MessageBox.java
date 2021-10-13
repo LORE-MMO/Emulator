@@ -1,18 +1,21 @@
+/*
+ * (c) 2013 InfinityArts
+ * All codes are for use only in HiddenProject
+ */
 package nereus.ui;
 
-import java.awt.Component;
 import javax.swing.JOptionPane;
 
 public class MessageBox {
-   public static void showMessage(String message, String title) {
-      JOptionPane.showMessageDialog((Component)null, message, title, 1);
-   }
 
-   public static int showConfirm(String message, String title, int type) {
-      return JOptionPane.showConfirmDialog((Component)null, message, title, type);
-   }
+    public static void showMessage(String message, String title) {
+        JOptionPane.showMessageDialog(null, message, title, JOptionPane.INFORMATION_MESSAGE);
+    }
 
-   private MessageBox() {
-      super();
-   }
+    public static int showConfirm(String message, String title, int type) {
+        return JOptionPane.showConfirmDialog(null, message, title, type);
+    }
+
+    private MessageBox() {
+    }
 }

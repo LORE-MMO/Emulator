@@ -172,7 +172,7 @@ public class UserCommand implements IRequest {
       if(cmd.equals("shutdown")) {
          world.scheduleTask(new Shutdown(world), 0L, TimeUnit.SECONDS);
       } else if(cmd.equals("restart")) {
-         world.scheduleTask(new Restart(world), 0L, TimeUnit.SECONDS);
+         world.scheduleTask(new Restart(world, user), 0L, TimeUnit.SECONDS);
       } else if(cmd.equals("shutdownnow")) {
          try {
             world.send(new String[]{"logoutWarning", "", "60"}, world.zone.getChannelList());
@@ -182,7 +182,7 @@ public class UserCommand implements IRequest {
             Thread.sleep(TimeUnit.SECONDS.toMillis(5L));
             System.exit(0);
          } catch (InterruptedException var12) {
-            ;
+            //
          }
       } else if(cmd.equals("restartnow")) {
          try {
