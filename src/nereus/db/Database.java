@@ -67,6 +67,7 @@ public class Database {
 
    public int getActiveConnections() {
       return this.poolProxy.getActiveConnections();
+//      return this.pool.getActiveConnections();
    }
 
    public JdbcHelper getJdbc() {

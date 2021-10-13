@@ -9,6 +9,7 @@ import nereus.dispatcher.RequestException;
 import nereus.log.SimpleLogFormat;
 import nereus.world.Users;
 import nereus.world.World;
+import nereus.ui.UserInterface;
 
 import it.gotoandplay.smartfoxserver.SmartFoxServer;
 import it.gotoandplay.smartfoxserver.data.Room;
@@ -37,6 +38,7 @@ public class Aghatosune extends AbstractExtension
    private ExtensionHelper helper;
    private Console console;
    private World world;
+   private UserInterface ui;
    private HashMap<String, Long> IPList = new HashMap();
    private HashMap<String, Integer> IPCounter = new HashMap();
 //   public Bot bot = new Bot(ConfigData.DISCORD_BOT_TOKEN);
@@ -63,6 +65,27 @@ public class Aghatosune extends AbstractExtension
       this.console.setWorld(this.world);
       this.console.setHelper(this.helper);
       this.world.db.jdbc.run("UPDATE servers SET Online = 1 WHERE Name = ?", ConfigData.SERVER_NAME);
+
+      SmartFoxServer.log.info("Nereus World initialized");
+
+      if (Boolean.parseBoolean(System.getProperty("gui", "false"))) {
+         try {
+            javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
+            this.ui = new UserInterface(this.world);
+         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+         } catch (ClassNotFoundException ex) {
+         } catch (InstantiationException ex) {
+         } catch (IllegalAccessException ex) {
+         } catch (IOException ex) {
+         }
+
+         java.awt.EventQueue.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+               ui.setVisible(true);
+            }
+         });
+      }
    }
 
    public void handleRequest(String cmd, ActionscriptObject ao, User user, int fromRoom) {

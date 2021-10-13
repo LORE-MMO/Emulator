@@ -8,7 +8,9 @@ import nereus.tasks.ACGiveaway;
 import nereus.tasks.FreeSFSPool;
 import nereus.tasks.WarzoneQueue;
 import nereus.world.stats.Stats;
+import nereus.tasks.Restart;
 import nereus.discord.Bot;
+
 import com.google.common.collect.ArrayListMultimap;
 import it.gotoandplay.smartfoxserver.SmartFoxServer;
 import it.gotoandplay.smartfoxserver.data.Room;
@@ -114,6 +116,7 @@ public class World {
     private AbstractExtension ext;
     private ScheduledExecutorService tasks;
     public Bot bot;
+    public Restart restart;
     public static final Random RANDOM = new Random();
 
     public World(AbstractExtension ext, Zone zone) {

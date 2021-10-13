@@ -19,6 +19,8 @@ import it.gotoandplay.smartfoxserver.data.User;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.channels.SocketChannel;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -204,12 +206,14 @@ public class Message implements IRequest
          String UpperRoom = room.getName().substring(0, 1).toUpperCase() + room.getName().substring(1);
          String UpperName = user.getName().substring(0, 1).toUpperCase() + user.getName().substring(1);
          Area area = (world.areas.get(room.getName().split("-")[0]));
+
          try {
             switch (channel) {
                case "world": {
                   Webhook webhook = new Webhook(ConfigData.DISCORD_WORLD_WEBHOOK);
                   if (linkedItems.size() > 0) return;
-                  webhook.setContent("**[World]** **[" + UpperName + "](<" + ConfigData.SERVER_PROFILE_LINK + UpperName + ">)**:  " + message);
+//                  webhook.setContent("[" + timeStamp + "] **[" + UpperName + "](<" + ConfigData.SERVER_PROFILE_LINK + UpperName + ">)**:  " + message);
+                  webhook.setContent("**" + UpperName + ":** " + message);
                   webhook.setTts(false);
                   webhook.execute();
                   break;
@@ -231,7 +235,9 @@ public class Message implements IRequest
                default: {
                   Webhook webhook = new Webhook(ConfigData.DISCORD_ZONE_WEBHOOK);
                   if (linkedItems.size() > 0) return;
-                  webhook.setContent("**[" + UpperRoom + "]** **[" + UpperName + "](<" + ConfigData.SERVER_PROFILE_LINK + UpperName + ">)**:  " + message);
+                  webhook.setUsername(UpperRoom);
+//                  webhook.setContent("[" + timeStamp + "] **[" + UpperName + "](<" + ConfigData.SERVER_PROFILE_LINK + UpperName + ">)**:  " + message);
+                  webhook.setContent("**" + UpperName + ":** " + message);
                   webhook.setTts(false);
                   webhook.execute();
                   break;
