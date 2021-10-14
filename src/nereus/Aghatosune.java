@@ -65,10 +65,7 @@ public class Aghatosune extends AbstractExtension
       this.console.setWorld(this.world);
       this.console.setHelper(this.helper);
       this.world.db.jdbc.run("UPDATE servers SET Online = 1 WHERE Name = ?", ConfigData.SERVER_NAME);
-
-      SmartFoxServer.log.info("Nereus World initialized");
-
-      if (Boolean.parseBoolean(System.getProperty("gui", "false"))) {
+//      if (ConfigData.SERVER_GUI) {
          try {
             javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
             this.ui = new UserInterface(this.world);
@@ -85,7 +82,9 @@ public class Aghatosune extends AbstractExtension
                ui.setVisible(true);
             }
          });
-      }
+//      }
+      SmartFoxServer.log.info("GUI HARUS NYA SUDAH TERBUKA");
+      SmartFoxServer.log.info("Nereus World initialized");
    }
 
    public void handleRequest(String cmd, ActionscriptObject ao, User user, int fromRoom) {

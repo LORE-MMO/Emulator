@@ -22,6 +22,7 @@ public class ConfigData {
    public static int DB_MAX_CONNECTIONS;
 
    public static String SERVER_NAME;
+   public static boolean SERVER_GUI;
    public static String SERVER_PROFILE_LINK;
    public static String SERVER_GAME_LINK;
 
@@ -148,6 +149,7 @@ public class ConfigData {
          DB_MAX_CONNECTIONS = Integer.parseInt(config.getProperty("database.connections.max"));
          SERVER_NAME = config.getProperty("server.name");
          STAFF_ONLY = Boolean.parseBoolean(config.getProperty("server.staffonly"));
+         SERVER_GUI = Boolean.parseBoolean(config.getProperty("server.gui"));
          ANTI_MESSAGEFLOOD_MIN_MSG_TIME = Long.parseLong(config.getProperty("antiflood.message.minimumtime"));
          ANTI_MESSAGEFLOOD_TOLERANCE = Integer.parseInt(config.getProperty("antiflood.message.tolerance"));
          ANTI_MESSAGEFLOOD_MAX_REPEATED = Integer.parseInt(config.getProperty("antiflood.message.maxrepeated"));
