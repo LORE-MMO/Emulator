@@ -443,7 +443,8 @@ public class Users {
 //      }
 //   }
 
-   public void giveRewards(User user, int exp, int gold, int coins, int cp, int rep, int factionId, int fromId, String npcType) {
+   public void giveRewards(User user, int exp, int gold, int coins, int cp, int rep, int factionId, int fromId, String npcType)
+   {
       boolean xpBoost = ((Boolean) user.properties.get(Users.BOOST_XP)).booleanValue();
       boolean goldBoost = ((Boolean) user.properties.get(Users.BOOST_GOLD)).booleanValue();
       boolean repBoost = ((Boolean) user.properties.get(Users.BOOST_REP)).booleanValue();
@@ -461,16 +462,29 @@ public class Users {
       int userLevel = ((Integer) user.properties.get(Users.LEVEL)).intValue();
       int userCp = calcCp + classPoints >= 302500 ? 302500 : calcCp + classPoints;
       int curRank = Rank.getRankFromPoints((Integer) user.properties.get(Users.CLASS_POINTS));
-      Map factions = (Map) user.properties.get(Users.FACTIONS);
 
       JSONObject eqp = (JSONObject) user.properties.get(Users.EQUIPMENT);
       JSONObject oldItem = eqp.getJSONObject("ar");
       int itemQuantity = this.world.db.jdbc.queryForInt("SELECT Quantity FROM users_items WHERE ItemID = ? AND UserID = ?", oldItem.getInt("ItemID"), user.properties.get(Users.DATABASE_ID));
+      Map factions = (Map) user.properties.get(Users.FACTIONS);
+//      JSONObject var16 = new JSONObject();
+//      var16.put("cmd", "sellItem");
+//      var16.put("intAmount", quest.getCoins());
+//      var16.put("CharItemID", Integer.valueOf(user.hashCode()));
+//      var16.put("bCoins", Integer.valueOf(1));
+//      world.send(var16, user);
+
+//      JSONObject addGoldExp = new JSONObject();
+//      addGoldExp.put("cmd", "addGoldExp");
+//      addGoldExp.put("id", fromId);
+//      addGoldExp.put("intGold", calcGold);
+//      addGoldExp.put("typ", npcType);
+//      addGoldExp.put("bCoins", calcCoins);
 
       JSONObject addGoldExp = new JSONObject();
       addGoldExp.put("cmd", "addGoldExp");
-      addGoldExp.put("id", fromId);
-      addGoldExp.put("intGold", calcGold);
+      addGoldExp.put("id", Integer.valueOf(fromId));
+      addGoldExp.put("intGold", Integer.valueOf(calcGold));
       addGoldExp.put("typ", npcType);
 
       if (userLevel < maxLevel) {
@@ -530,9 +544,9 @@ public class Users {
       try {
          QueryResult var36 = this.world.db.jdbc.query("SELECT Gold, Coins, Exp FROM users WHERE id = ? FOR UPDATE", user.properties.get(Users.DATABASE_ID));
          if (var36.next()) {
-            int userCoins = var36.getInt("Coins") + calcCoins;
             userXp = var36.getInt("Exp") + expReward;
             int var37 = var36.getInt("Gold") + calcGold;
+            int userCoins = var36.getInt("Coins") + calcCoins;
             var36.close();
 
             while (userXp >= this.world.getExpToLevel(userLevel)) {
@@ -545,9 +559,13 @@ public class Users {
                userXp = 0;
             }
 
-            if (calcGold > 0 || expReward > 0 && userLevel != maxLevel) {
+            if (calcGold > 0 || calcCoins > 0 || expReward > 0 && userLevel != maxLevel) {
+//            if (calcGold > 0 || expReward > 0 && userLevel != maxLevel) {
                this.world.db.jdbc.run("UPDATE users SET Gold = ?, Coins = ?, Exp = ? WHERE id = ?", var37, userCoins, userXp, user.properties.get(Users.DATABASE_ID));
             }
+
+            user.properties.put(Users.GOLD, var37);
+            user.properties.put(Users.COINS, userCoins);
 
             if (curRank != 10 && calcCp > 0) {
                eqp = (JSONObject) user.properties.get(Users.EQUIPMENT);

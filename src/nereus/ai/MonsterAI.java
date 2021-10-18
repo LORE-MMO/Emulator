@@ -178,10 +178,12 @@ public class MonsterAI implements Runnable {
       this.health = ((Monster)this.world.monsters.get(Integer.valueOf(this.monsterId))).getHealth();
       this.mana = ((Monster)this.world.monsters.get(Integer.valueOf(this.monsterId))).getMana();
       this.targets.clear();
+
       JSONObject monInfo = new JSONObject();
       monInfo.put("intHP", Integer.valueOf(this.health));
       monInfo.put("intMP", Integer.valueOf(this.mana));
       monInfo.put("intState", Integer.valueOf(this.state));
+
       JSONObject mtls = new JSONObject();
       mtls.put("cmd", "mtls");
       mtls.put("id", Integer.valueOf(this.mapId));
