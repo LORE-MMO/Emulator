@@ -6,7 +6,6 @@ import nereus.db.objects.Quest;
 import nereus.db.objects.QuestReward;
 import nereus.dispatcher.IRequest;
 import nereus.dispatcher.RequestException;
-import nereus.world.Users;
 import nereus.world.World;
 
 import com.google.common.collect.HashMultimap;
@@ -38,13 +37,12 @@ public class TryQuestComplete implements IRequest
    {
       int questId = Integer.parseInt(params[0]);
       int itemId = Integer.parseInt(params[1]);
-      Set userQuests = (Set)user.properties.get("quests");
-//      Set<Integer> userQuests = (Set<Integer>)user.properties.get("quests");
+//      Set userQuests = (Set)user.properties.get("quests");
+      Set<Integer> userQuests = (Set<Integer>)user.properties.get("quests");
       Quest quest = (Quest)world.quests.get(Integer.valueOf(questId));
-
-      if (!quest.locations.isEmpty()) {
+      if(!quest.locations.isEmpty()) {
          int ccqr = ((Area)world.areas.get(room.getName().split("-")[0])).getId();
-         if (!quest.locations.contains(Integer.valueOf(ccqr))) {
+         if(!quest.locations.contains(Integer.valueOf(ccqr))) {
             world.users.log(user, "Invalid Quest Complete", "Quest complete triggered at different location.");
             return;
          }
@@ -53,25 +51,23 @@ public class TryQuestComplete implements IRequest
       JSONObject ccqr1 = new JSONObject();
       ccqr1.put("cmd", "ccqr");
       ccqr1.put("QuestID", Integer.valueOf(questId));
-
-      if (!userQuests.contains(Integer.valueOf(questId)) && !doom.contains(Integer.valueOf(questId))) {
-//      if (!userQuests.contains(Integer.valueOf(questId)) && !doom.contains(Integer.valueOf(questId)) && !destiny.contains(Integer.valueOf(questId))) {
+      if(!userQuests.contains(Integer.valueOf(questId)) && !doom.contains(Integer.valueOf(questId)) && !destiny.contains(Integer.valueOf(questId))) {
          ccqr1.put("bSuccess", Integer.valueOf(0));
          world.users.log(user, "Packet Edit [TryQuestComplete]", "Attempted to complete an unaccepted quest: " + quest.getName());
       } else {
-         if (!quest.getField().isEmpty() && world.users.getAchievement(quest.getField(), quest.getIndex(), user) != 0) {
+         if(!quest.getField().isEmpty() && world.users.getAchievement(quest.getField(), quest.getIndex(), user) != 0) {
             ccqr1.put("bSuccess", Integer.valueOf(0));
             world.send(ccqr1, user);
             world.users.log(user, "Packet Edit [TryQuestComplete]", "Failed to pass achievement validation while attempting to complete quest: " + quest.getName());
             return;
          }
 
-         if (world.users.turnInItems(user, quest.requirements)) {
-            if (doom.contains(Integer.valueOf(questId))) {
+         if(world.users.turnInItems(user, quest.requirements)) {
+            if(doom.contains(Integer.valueOf(questId))) {
                this.doWheel(user, world, "doom");
             } else if(destiny.contains(Integer.valueOf(questId))) {
                this.doWheel(user, world, "destiny");
-            } else if (quest.rewards.size() > 0) {
+            } else if(quest.rewards.size() > 0) {
                HashMultimap rewardObj = HashMultimap.create();
                HashMultimap itemsPercentage = HashMultimap.create();
                Iterator keys = quest.rewards.entries().iterator();
@@ -105,7 +101,7 @@ public class TryQuestComplete implements IRequest
 
                   switch(rate) {
                      case 0:
-                        if (itemId == qty.itemId) {
+                        if(itemId == qty.itemId) {
                            world.users.dropItem(user, qty.itemId, qty.quantity);
                         }
                         break;
@@ -135,20 +131,21 @@ public class TryQuestComplete implements IRequest
                }
             }
 
-            int gold = ((Integer) user.properties.get(Users.GOLD)).intValue() >= (world.coreValues.get("intGoldMax")).intValue() ? 0 : quest.getGold();
-            int coins = ((Integer) user.properties.get(Users.COINS)).intValue() >= (world.coreValues.get("intCoinsMax")).intValue() ? 0 : quest.getCoins();
-
-            world.users.giveRewards(user, quest.getExperience(), gold, coins, quest.getClassPoints(), quest.getReputation(), quest.getFactionId(), user.getUserId(), "p");
-//            world.users.giveRewards(user, quest.getExperience(), quest.getGold(), quest.getCoins(), quest.getClassPoints(), quest.getReputation(), quest.getFactionId(), user.getUserId(), "p");
-            JSONObject var16 = new JSONObject();
-            var16.put("cmd", "sellItem");
-            var16.put("intAmount", quest.getCoins());
-            var16.put("CharItemID", Integer.valueOf(user.hashCode()));
-            var16.put("bCoins", Integer.valueOf(1));
-            world.send(var16, user);
+            world.users.giveRewards(user, quest.getExperience(), quest.getGold(), 1, quest.getClassPoints(), quest.getReputation(), quest.getFactionId(), user.getUserId(), "p");
+            if(quest.getCoins() > 0){
+               JSONObject var16 = new JSONObject();
+               var16.put("cmd", "sellItem");
+               var16.put("intAmount", quest.getCoins());
+               var16.put("CharItemID", Integer.valueOf(user.hashCode()));
+               var16.put("bCoins", Integer.valueOf(1));
+               world.send(var16, user);
+               world.db.jdbc.run("UPDATE users SET Coins = (Coins + ?) WHERE id=?", new Object[]{Integer.valueOf(quest.getCoins()), user.properties.get("dbId")});
+               world.send(new String[]{"server", quest.getCoins() + "ACs has been added to your account."}, user);
+            }
 
             JSONObject rewardObj1 = new JSONObject();
-            rewardObj1.put("intGold", gold);
+            rewardObj1.put("intGold", quest.getGold());
+            rewardObj1.put("intCoins", quest.getCoins());
             rewardObj1.put("intExp", quest.getExperience());
             rewardObj1.put("iCP", quest.getClassPoints());
 
@@ -158,27 +155,12 @@ public class TryQuestComplete implements IRequest
 
             ccqr1.put("rewardObj", rewardObj1);
             ccqr1.put("sName", quest.getName());
-            ccqr1.put("rewardType", quest.getRewardType());
 
-//            if (quest.getSlot() > 0 && world.users.getQuestValue(user, quest.getSlot()) < quest.getValue()) {
-//               world.users.setQuestValue(user, quest.getSlot(), quest.getValue());
-//            }
-
-            if (quest.getSlot() > 0) {
-               if (world.users.getQuestValue(user, quest.getSlot()) >= quest.getValue()) {
-                  //
-               } else {
-                  world.users.setQuestValue(user, quest.getSlot(), quest.getValue());
-               }
+            if (quest.getSlot() > 0 && world.users.getQuestValue(user, quest.getSlot()) < quest.getValue()) {
+               world.users.setQuestValue(user, quest.getSlot(), quest.getValue());
             }
 
-//            if (quest.getRewardType().equals("ac")) {
-//               ccqr1.put("intAmount", Integer.valueOf(coins));
-//            ccqr1.put("intAmount", Integer.valueOf(coins));
-//            ccqr1.put("bCoins", Integer.valueOf(1));
-//            }
-
-            if (!quest.getField().isEmpty()) {
+            if(!quest.getField().isEmpty()) {
                world.users.setAchievement(quest.getField(), quest.getIndex(), 1, user);
             }
 
@@ -210,36 +192,36 @@ public class TryQuestComplete implements IRequest
 
          try {
             QueryResult itemJSON = world.db.jdbc.query("SELECT * FROM users_items WHERE ItemID = ? AND UserID = ? FOR UPDATE", new Object[]{Integer.valueOf(itemId), user.properties.get("dbId")});
-            itemJSON.setAutoClose(true);
             if(!itemJSON.next()) {
                world.db.jdbc.run("INSERT INTO users_items (UserID, ItemID, EnhID, Equipped, Quantity, Bank, DatePurchased) VALUES (?, ?, ?, 0, ?, 0, NOW())", new Object[]{user.properties.get("dbId"), Integer.valueOf(itemId), Integer.valueOf(item.getEnhId()), Integer.valueOf(item.getQuantity())});
                charItemId = Long.valueOf(world.db.jdbc.getLastInsertId()).intValue();
             }
-
             itemJSON.close();
             QueryResult dropItems = world.db.jdbc.query("SELECT id, Quantity FROM users_items WHERE ItemID = ? AND UserID = ? FOR UPDATE", new Object[]{Integer.valueOf(19189), user.properties.get("dbId")});
             if(dropItems.next()) {
                charItemId1 = dropItems.getInt("id");
                quantity1 = dropItems.getInt("Quantity");
                world.db.jdbc.run("UPDATE users_items SET Quantity = (Quantity + 1) WHERE id = ?", new Object[]{Integer.valueOf(charItemId1)});
+               dropItems.close();
             } else {
                world.db.jdbc.run("INSERT INTO users_items (UserID, ItemID, EnhID, Equipped, Quantity, Bank, DatePurchased) VALUES (?, ?, ?, 0, ?, 0, NOW())", new Object[]{user.properties.get("dbId"), Integer.valueOf(19189), Integer.valueOf(0), Integer.valueOf(1)});
                charItemId1 = Long.valueOf(world.db.jdbc.getLastInsertId()).intValue();
                quantity1 = 1;
+               dropItems.close();
             }
-
             dropItems.close();
             QueryResult potionResult = world.db.jdbc.query("SELECT id, Quantity FROM users_items WHERE ItemID = ? AND UserID = ? FOR UPDATE", new Object[]{Integer.valueOf(18927), user.properties.get("dbId")});
             if(potionResult.next()) {
                charItemId2 = potionResult.getInt("id");
                quantity2 = potionResult.getInt("Quantity");
                world.db.jdbc.run("UPDATE users_items SET Quantity = (Quantity + 1) WHERE id = ?", new Object[]{Integer.valueOf(charItemId2)});
+               potionResult.close();
             } else {
                world.db.jdbc.run("INSERT INTO users_items (UserID, ItemID, EnhID, Equipped, Quantity, Bank, DatePurchased) VALUES (?, ?, ?, 0, ?, 0, NOW())", new Object[]{user.properties.get("dbId"), Integer.valueOf(18927), Integer.valueOf(0), Integer.valueOf(1)});
                charItemId2 = Long.valueOf(world.db.jdbc.getLastInsertId()).intValue();
                quantity2 = 1;
+               potionResult.close();
             }
-
             potionResult.close();
          } catch (JdbcException var20) {
             if(world.db.jdbc.isInTransaction()) {

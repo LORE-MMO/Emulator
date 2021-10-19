@@ -58,12 +58,14 @@ public class GetDrop implements IRequest
                      } else {
                         world.db.jdbc.rollbackTransaction();
                         world.send(gd, user);
+                        je.close();
                         return;
                      }
 //                     world.db.jdbc.run("UPDATE users_items SET Quantity = ? WHERE ItemID = ? AND UserID = ?", quantity + quantityToDrop, itemId, user.properties.get("dbId"));
                   } else if(item.getStack() == 1) {
                      world.db.jdbc.rollbackTransaction();
                      world.send(gd, user);
+                     je.close();
                      return;
                   }
                } else {

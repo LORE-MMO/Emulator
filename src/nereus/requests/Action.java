@@ -89,8 +89,8 @@ public class Action implements IRequest {
                } else if(maxMana.longValue() > var52.longValue()) {
                   user.properties.put("requestbotcounter", Integer.valueOf(0));
                } else if(targets.intValue() >= 5) {
-                  world.sendServerMessage(user.getName() + " is suspected of botting thus kicked by the server!");
-                  world.users.kick(user);
+                  //world.sendServerMessage(user.getName() + " is suspected of botting thus kicked by the server!");
+                  //world.users.kick(user);
                } else {
                   user.properties.put("requestbotcounter", Integer.valueOf(targets.intValue() + 1));
                }

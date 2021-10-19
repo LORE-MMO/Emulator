@@ -47,14 +47,16 @@ public class BankFromInventory implements IRequest {
                bfi.put("cmd", "bankFromInv");
                bfi.put("ItemID", Integer.valueOf(itemId));
                bfi.put("bSuccess", Integer.valueOf(success));
+
                if(success == 0) {
                   bfi.put("msg", "An error occured while transferring your item to bank.");
                }
-
                world.send(bfi, user);
+               je1.close();
             } else {
                world.users.kick(user);
                world.users.log(user, "Packet Edit [BankFromInventory]", "Attemping to put an item into the bank not in possession.");
+               je1.close();
             }
          }
 

@@ -127,7 +127,6 @@ public class TradeFromInventory implements IRequest {
                   }
                }
             }
-
             je1.close();
          } catch (JdbcException var23) {
             if(world.db.jdbc.isInTransaction()) {

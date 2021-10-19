@@ -64,6 +64,7 @@ public class TradeLock implements IRequest {
                di.put("Self", Integer.valueOf(1));
                world.send(di, user);
             }
+            userResult1.close();
 
          }
       } else {
