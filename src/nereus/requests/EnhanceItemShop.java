@@ -45,6 +45,7 @@ public class EnhanceItemShop implements IRequest {
                   if(equip > i$) {
                      world.db.jdbc.rollbackTransaction();
                      world.users.log(user, "Packet Edit [EnhanceItemShop]", "Sent an enhancement request while lacking funds.");
+                     eqp.close();
                      return;
                   }
 

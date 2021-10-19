@@ -131,17 +131,21 @@ public class TryQuestComplete implements IRequest
                }
             }
 
-            world.users.giveRewards(user, quest.getExperience(), quest.getGold(), quest.getCoins(), quest.getClassPoints(), quest.getReputation(), quest.getFactionId(), user.getUserId(), "p");
-
-            JSONObject var16 = new JSONObject();
-            var16.put("cmd", "sellItem");
-            var16.put("intAmount", quest.getCoins());
-            var16.put("CharItemID", Integer.valueOf(user.hashCode()));
-            var16.put("bCoins", Integer.valueOf(1));
-            world.send(var16, user);
+            world.users.giveRewards(user, quest.getExperience(), quest.getGold(), 1, quest.getClassPoints(), quest.getReputation(), quest.getFactionId(), user.getUserId(), "p");
+            if(quest.getCoins() > 0){
+               JSONObject var16 = new JSONObject();
+               var16.put("cmd", "sellItem");
+               var16.put("intAmount", quest.getCoins());
+               var16.put("CharItemID", Integer.valueOf(user.hashCode()));
+               var16.put("bCoins", Integer.valueOf(1));
+               world.send(var16, user);
+               world.db.jdbc.run("UPDATE users SET Coins = (Coins + ?) WHERE id=?", new Object[]{Integer.valueOf(quest.getCoins()), user.properties.get("dbId")});
+               world.send(new String[]{"server", quest.getCoins() + "ACs has been added to your account."}, user);
+            }
 
             JSONObject rewardObj1 = new JSONObject();
             rewardObj1.put("intGold", quest.getGold());
+            rewardObj1.put("intCoins", quest.getCoins());
             rewardObj1.put("intExp", quest.getExperience());
             rewardObj1.put("iCP", quest.getClassPoints());
 
@@ -188,36 +192,36 @@ public class TryQuestComplete implements IRequest
 
          try {
             QueryResult itemJSON = world.db.jdbc.query("SELECT * FROM users_items WHERE ItemID = ? AND UserID = ? FOR UPDATE", new Object[]{Integer.valueOf(itemId), user.properties.get("dbId")});
-            itemJSON.setAutoClose(true);
             if(!itemJSON.next()) {
                world.db.jdbc.run("INSERT INTO users_items (UserID, ItemID, EnhID, Equipped, Quantity, Bank, DatePurchased) VALUES (?, ?, ?, 0, ?, 0, NOW())", new Object[]{user.properties.get("dbId"), Integer.valueOf(itemId), Integer.valueOf(item.getEnhId()), Integer.valueOf(item.getQuantity())});
                charItemId = Long.valueOf(world.db.jdbc.getLastInsertId()).intValue();
             }
-
             itemJSON.close();
             QueryResult dropItems = world.db.jdbc.query("SELECT id, Quantity FROM users_items WHERE ItemID = ? AND UserID = ? FOR UPDATE", new Object[]{Integer.valueOf(19189), user.properties.get("dbId")});
             if(dropItems.next()) {
                charItemId1 = dropItems.getInt("id");
                quantity1 = dropItems.getInt("Quantity");
                world.db.jdbc.run("UPDATE users_items SET Quantity = (Quantity + 1) WHERE id = ?", new Object[]{Integer.valueOf(charItemId1)});
+               dropItems.close();
             } else {
                world.db.jdbc.run("INSERT INTO users_items (UserID, ItemID, EnhID, Equipped, Quantity, Bank, DatePurchased) VALUES (?, ?, ?, 0, ?, 0, NOW())", new Object[]{user.properties.get("dbId"), Integer.valueOf(19189), Integer.valueOf(0), Integer.valueOf(1)});
                charItemId1 = Long.valueOf(world.db.jdbc.getLastInsertId()).intValue();
                quantity1 = 1;
+               dropItems.close();
             }
-
             dropItems.close();
             QueryResult potionResult = world.db.jdbc.query("SELECT id, Quantity FROM users_items WHERE ItemID = ? AND UserID = ? FOR UPDATE", new Object[]{Integer.valueOf(18927), user.properties.get("dbId")});
             if(potionResult.next()) {
                charItemId2 = potionResult.getInt("id");
                quantity2 = potionResult.getInt("Quantity");
                world.db.jdbc.run("UPDATE users_items SET Quantity = (Quantity + 1) WHERE id = ?", new Object[]{Integer.valueOf(charItemId2)});
+               potionResult.close();
             } else {
                world.db.jdbc.run("INSERT INTO users_items (UserID, ItemID, EnhID, Equipped, Quantity, Bank, DatePurchased) VALUES (?, ?, ?, 0, ?, 0, NOW())", new Object[]{user.properties.get("dbId"), Integer.valueOf(18927), Integer.valueOf(0), Integer.valueOf(1)});
                charItemId2 = Long.valueOf(world.db.jdbc.getLastInsertId()).intValue();
                quantity2 = 1;
+               potionResult.close();
             }
-
             potionResult.close();
          } catch (JdbcException var20) {
             if(world.db.jdbc.isInTransaction()) {

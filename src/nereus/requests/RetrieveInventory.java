@@ -57,7 +57,7 @@ public class RetrieveInventory implements IRequest {
       QueryResult result = world.db.jdbc.query("SELECT username FROM users LEFT JOIN users_friends ON FriendID = id WHERE UserID = ?", new Object[]{user.properties.get("dbId")});
 
       while(result.next()) {
-         User guildId = world.zone.getUserByName(result.getString("Name").toLowerCase());
+         User guildId = world.zone.getUserByName(result.getString("username").toLowerCase());
          if(guildId != null) {
             world.send(updateFriend, guildId);
             world.send(new String[]{"server", user.getName() + " has logged in."}, guildId);

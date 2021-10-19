@@ -52,5 +52,6 @@ public class AddFriend implements IRequest {
          world.send(addFriend, userObj1);
          world.send(new String[]{"server", userObj2.getName() + " has been added to your friends list."}, userObj1);
       }
+      result.close();
    }
 }

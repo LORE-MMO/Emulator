@@ -362,7 +362,6 @@ public class Users {
             ++bankCount;
          }
       }
-
       bankResult.close();
       return bankCount;
    }
@@ -395,7 +394,6 @@ public class Users {
          this.world.db.jdbc.run("UPDATE guilds SET Level = ?, Exp = 0 WHERE id = ?", new Object[]{Integer.valueOf(newLevel), guildId});
          this.world.sendToGuild(levelUp, guild);
       }
-
       result.close();
    }
    //   public void giveRewards(User user, int exp, int gold, int coins, int cp, int rep, int factionId, int fromId, String npcType) {
@@ -471,6 +469,7 @@ public class Users {
       addGoldExp.put("cmd", "addGoldExp");
       addGoldExp.put("id", fromId);
       addGoldExp.put("intGold", calcGold);
+      addGoldExp.put("intCoins", Integer.valueOf(calcCoins));
       addGoldExp.put("typ", npcType);
 
       if (userLevel < maxLevel) {
@@ -525,6 +524,7 @@ public class Users {
       }
 
       this.world.send(addGoldExp, user);
+      this.world.db.jdbc.query("UPDATE users SET Coins = (Coins + ?) WHERE id=?", new Object[]{Integer.valueOf(calcCoins), user.properties.get(Users.DATABASE_ID)});
       this.world.db.jdbc.beginTransaction();
 
       try {
@@ -545,7 +545,7 @@ public class Users {
                userXp = 0;
             }
 
-            if (calcGold > 0 || expReward > 0 && userLevel != maxLevel) {
+            if (calcGold > 0 || expReward > 0 || calcCoins > 0 && userLevel != maxLevel) {
                this.world.db.jdbc.run("UPDATE users SET Gold = ?, Coins = ?, Exp = ? WHERE id = ?", var37, userCoins, userXp, user.properties.get(Users.DATABASE_ID));
             }
 
@@ -733,6 +733,8 @@ public class Users {
          user.properties.put(Users.PVP_TEAM, Integer.valueOf(0));
          user.properties.put(Users.LOAD, false);
       }
+      rs.close();
+
    }
 
    public void log(User user, String violation, String details) {
@@ -1427,7 +1429,7 @@ public class Users {
          JSONObject temp = new JSONObject();
          temp.put("iLvl", Integer.valueOf(result.getInt("Level")));
          temp.put("ID", Integer.valueOf(result.getInt("id")));
-         temp.put("sName", result.getString("Name"));
+         temp.put("sName", result.getString("username"));
          temp.put("sServer", result.getString("CurrentServer"));
          friends.add(temp);
       }
@@ -1478,9 +1480,10 @@ public class Users {
             addTemporaryItem(user, itemId, quantity);
       } else {
          QueryResult itemResult = this.world.db.getJdbc().query("SELECT Quantity FROM users_items WHERE ItemID = ? AND UserID = ? AND Bank = 0", itemId, user.properties.get(Users.DATABASE_ID));
+         SmartFoxServer.log.info("Nyangkut 1");
          if (itemResult.next()) {
             int quantityInInventory = itemResult.getInt("Quantity");
-            itemResult.close();
+               itemResult.close();
             if (quantityInInventory >= itemObj.getStack())
                return;
          }
@@ -1719,6 +1722,7 @@ public class Users {
                valid = true;
             } else {
                QueryResult itemResult1 = this.world.db.jdbc.query("SELECT Quantity FROM users_items WHERE ItemID = ? AND UserID = ? FOR UPDATE", new Object[]{Integer.valueOf(itemId), user.properties.get(Users.DATABASE_ID)});
+               SmartFoxServer.log.info("Nyangkut 1");
                if (!itemResult1.next()) {
                   valid = false;
                   itemResult1.close();
@@ -1829,7 +1833,7 @@ public class Users {
       QueryResult result = this.world.db.jdbc.query("SELECT username FROM users LEFT JOIN users_friends ON FriendID = id WHERE UserID = ?", new Object[]{user.properties.get(Users.DATABASE_ID)});
 
       while (result.next()) {
-         User client = this.world.zone.getUserByName(result.getString("Name").toLowerCase());
+         User client = this.world.zone.getUserByName(result.getString("username").toLowerCase());
          if (client != null) {
             this.world.send(updateFriend, client);
             this.world.send(new String[]{"server", user.getName() + " has logged out."}, client);
