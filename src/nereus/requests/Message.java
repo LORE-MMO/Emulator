@@ -16,6 +16,7 @@ import it.gotoandplay.smartfoxserver.SmartFoxServer;
 import it.gotoandplay.smartfoxserver.data.Room;
 import it.gotoandplay.smartfoxserver.data.User;
 
+import java.awt.*;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.channels.SocketChannel;
@@ -31,6 +32,9 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.apache.commons.lang3.StringEscapeUtils;
+import org.javacord.api.entity.message.embed.EmbedBuilder;
+
+import org.javacord.api.entity.channel.TextChannel;
 
 public class Message implements IRequest
 {

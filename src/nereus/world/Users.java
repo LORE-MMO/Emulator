@@ -524,15 +524,14 @@ public class Users {
       }
 
       this.world.send(addGoldExp, user);
-      this.world.db.jdbc.query("UPDATE users SET Coins = (Coins + ?) WHERE id=?", new Object[]{Integer.valueOf(calcCoins), user.properties.get(Users.DATABASE_ID)});
       this.world.db.jdbc.beginTransaction();
 
       try {
          QueryResult var36 = this.world.db.jdbc.query("SELECT Gold, Coins, Exp FROM users WHERE id = ? FOR UPDATE", user.properties.get(Users.DATABASE_ID));
          if (var36.next()) {
-            int userCoins = var36.getInt("Coins") + calcCoins;
             userXp = var36.getInt("Exp") + expReward;
             int var37 = var36.getInt("Gold") + calcGold;
+            int userCoins = var36.getInt("Coins") + calcCoins;
             var36.close();
 
             while (userXp >= this.world.getExpToLevel(userLevel)) {

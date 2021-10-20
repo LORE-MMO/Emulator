@@ -28,7 +28,7 @@ public class RequestMapName implements IDiscord
             int count = 0;
             String name = event.getMessageContent().split(" ")[1];
 
-            QueryResult rs = world.db.jdbc.query("SELECT * FROM maps WHERE Name LIKE ? LIMIT 10", "%" + name.toLowerCase() + "%");
+            QueryResult rs = world.db.jdbc.query("SELECT * FROM maps WHERE Name LIKE ? AND Staff = 0 LIMIT 10", "%" + name.toLowerCase() + "%");
             while (rs.next()) {
                 int id = rs.getInt("id");
                 String Name = rs.getString("Name");

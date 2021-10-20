@@ -23,6 +23,7 @@ public class EquipItem implements IRequest {
 
    public void process(String[] params, User user, World world, Room room) throws RequestException {
       int itemId = Integer.parseInt(params[0]);
+      JSONObject cac;
       Item item = (Item)world.items.get(Integer.valueOf(itemId));
       if(item.isStaff() && !user.isAdmin() && !user.isModerator()) {
          world.db.jdbc.run("UPDATE users SET Access = 0, PermamuteFlag = 0 WHERE id = ?", new Object[]{user.properties.get(Users.DATABASE_ID)});
@@ -35,13 +36,24 @@ public class EquipItem implements IRequest {
          throw new RequestException("Upgrade is required!");
       } else {
          if(item.getFactionId() > 1) {
-            Map je = (Map)user.properties.get(Users.FACTIONS);
+            Map je = (Map)user.properties.get("factions");
             if(!je.containsKey(Integer.valueOf(item.getFactionId()))) {
-               throw new RequestException("Reputation requirement not met!");
+               cac = new JSONObject();
+               cac.put("cmd", "popupmsg"); //popupmsg
+               cac.put("strMsg", "Reputation requirement not met!");
+               cac.put("strGlow", "red,medium");
+               cac.put("bitSuccess", 0);
+               world.send(cac, user);
+               return;
             }
-
             if(((Integer)je.get(Integer.valueOf(item.getFactionId()))).intValue() < item.getReqReputation()) {
-               throw new RequestException("Reputation requirement not met!");
+               cac = new JSONObject();
+               cac.put("cmd", "popupmsg"); //popupmsg
+               cac.put("strMsg", "Reputation requirement not met!");
+               cac.put("strGlow", "red,medium");
+               cac.put("bitSuccess", 0);
+               world.send(cac, user);
+               return;
             }
          }
 

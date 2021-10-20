@@ -22,8 +22,11 @@ public class Monster {
    private int experience;
    private int reputation;
    private int DPS;
-   private int teamId;
-   public Set<MonsterDrop> drops;
+    private double DamageReduction;
+    private int teamId;
+    public boolean worldboss,immune;
+    public double critical,dodge;
+    public Set<MonsterDrop> drops;
    public Set<MonsterSkill> skills;
   public Monster() {
       super();
@@ -75,7 +78,12 @@ public class Monster {
        monster.experience = rs.getInt("Experience");
        monster.reputation = rs.getInt("Reputation");
        monster.DPS = rs.getInt("DPS");
-      monster.teamId = rs.getInt("TeamID");
+         monster.DamageReduction = rs.getDouble("DamageReduction");
+         monster.teamId = rs.getInt("TeamID");
+         monster.worldboss = rs.getBoolean("WorldBoss");
+         monster.immune = rs.getBoolean("Immune");
+         monster.critical = rs.getDouble("Critical");
+         monster.dodge = rs.getDouble("Dodge");
        
        return new AbstractMap.SimpleEntry(Integer.valueOf(monster.id), monster);
     }
@@ -155,5 +163,22 @@ public class Monster {
 
    public int getTeamId() {
       return this.teamId;
-   }  
+   }
+    public double getDamageReduction() {
+        return this.DamageReduction;
+    }
+
+    public boolean isWorldBoss() {
+        return this.worldboss;
+    }
+
+    public boolean isImmune() { return immune; }
+
+    public double getCritical() {
+        return this.critical;
+    }
+
+    public double getDodge() {
+        return this.dodge;
+    }
 }

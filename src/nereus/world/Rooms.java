@@ -290,6 +290,7 @@ public class Rooms {
    public Room createRoom(String name) {
       HashMap map = new HashMap();
       String mapName = name.split("-")[0].equals("house")?name:name.split("-")[0];
+      int roomId = Integer.parseInt(name.split("-")[1].equals("house")?name:name.split("-")[1]);
       Area area = (Area)this.world.areas.get(mapName);
       map.put("isGame", "false");
       map.put("maxU", String.valueOf(area.getMaxPlayers()));
@@ -305,6 +306,11 @@ public class Rooms {
             while(b.hasNext()) {
                MapMonster r = (MapMonster)b.next();
                MonsterAI PVPFactions = new MonsterAI(r, this.world, ex);
+               Monster monsterData = (Monster) this.world.monsters.get(PVPFactions.monsterId);
+               if (monsterData.isWorldBoss() || monsterData.isWorldBoss() && roomId != 1) {
+                  PVPFactions.setState(2);
+                  PVPFactions.die();
+               }
                monsters.put(Integer.valueOf(r.getMonMapId()), PVPFactions);
             }
          }

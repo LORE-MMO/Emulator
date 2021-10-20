@@ -4,6 +4,7 @@
  */
 package nereus.requests.auction;
 
+import nereus.config.ConfigData;
 import nereus.db.objects.Item;
 import nereus.dispatcher.IRequest;
 import nereus.dispatcher.RequestException;
@@ -15,6 +16,10 @@ import it.gotoandplay.smartfoxserver.data.User;
 import jdbchelper.JdbcException;
 import jdbchelper.QueryResult;
 import net.sf.json.JSONObject;
+import org.javacord.api.entity.channel.TextChannel;
+import org.javacord.api.entity.message.embed.EmbedBuilder;
+
+import java.awt.*;
 
 /**
  *
@@ -96,8 +101,18 @@ public class SellAuctionItem implements IRequest {
                                 world.db.jdbc.run("UPDATE users SET Coins = Coins - 100 WHERE id = ?", userId);
                                 user.properties.put(Users.COINS, (Integer) user.properties.get(Users.COINS) - 100);
                                 JSONObject tr = new JSONObject();
-                                tr.put("cmd", "updateGoldCoins"); //updateGoldCoins
+                                tr.put("cmd", "updateGoldCoins");
                                 tr.put("coins", world.db.jdbc.queryForInt("SELECT Coins FROM users WHERE id = ?", userId));
+
+                                TextChannel textchannel = (TextChannel)world.bot.api.getTextChannelById(ConfigData.DISCORD_MARKET_CHANNELID).get();
+                                EmbedBuilder second = new EmbedBuilder();
+                                second.setTitle("Auctioned **" + item.getName() + "**");
+                                second.setDescription(" **[" + user.properties.get(Users.USERNAME) + "](" + ConfigData.SERVER_PROFILE_LINK + user.getName() + ")** has auctioned the item **[" + item.getName() +" x" + quantity + "](" + item.getId() + ")** for a price of");
+                                second.setColor(Color.BLUE);
+                                second.addField("Coins", world.toProperNumber(coins)+ "c", true);
+                                second.addField("Gold", world.toProperNumber(gold) + "g", true);
+                                textchannel.sendMessage(second);
+
                                 world.send(tr, user);
                             } else {
                                 sell.put("strMessage", "Quantity requirement for turning in item is lacking.");

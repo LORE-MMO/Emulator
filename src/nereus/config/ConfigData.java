@@ -46,6 +46,7 @@ public class ConfigData {
 
    public static long DISCORD_GENERAL_CHANNELID;
    public static long DISCORD_LOGS_CHANNELID;
+   public static long DISCORD_MARKET_CHANNELID;
 
    public static String DISCORD_ZONE_WEBHOOK;
    public static String DISCORD_ZONE_AVATAR;
@@ -163,6 +164,7 @@ public class ConfigData {
 
          DISCORD_GENERAL_CHANNELID = Long.parseLong(config.getProperty("discord.general.channelid"));
          DISCORD_LOGS_CHANNELID = Long.parseLong(config.getProperty("discord.logs.channelid"));
+         DISCORD_MARKET_CHANNELID = Long.parseLong(config.getProperty("discord.market.channelid"));
 
          DISCORD_BOT_AVATAR = config.getProperty("discord.bot.avatar");
          DISCORD_BOT_TOKEN = config.getProperty("discord.bot.token");
