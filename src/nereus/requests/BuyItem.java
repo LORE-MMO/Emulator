@@ -87,7 +87,6 @@ public class BuyItem implements IRequest {
                   if(!charItemId.next()) {
                      charItemId.close();
                      buy.put("strMessage", "You do not meet the requirements to buy this item.");
-
                      world.send(buy, user);
                      return;
                   }
@@ -127,9 +126,10 @@ public class BuyItem implements IRequest {
                            if(coinsLeft >= item.getStack()) {
                               world.db.jdbc.rollbackTransaction();
                               buy.put("strMessage", "You cannot have more than " + item.getStack() + " of that item!");
-
                               world.send(buy, user);
                               world.users.log(user, "Packet Edit [BuyItem]", "Attempted to purchase more than stack value");
+                              je2.close();
+                              itemResult1.close();
                               return;
                            }
 
@@ -137,9 +137,10 @@ public class BuyItem implements IRequest {
                         } else if(item.getStack() == 1) {
                            world.db.jdbc.rollbackTransaction();
                            buy.put("strMessage", "You cannot have more than " + item.getStack() + " of that item!");
-
                            world.send(buy, user);
                            world.users.log(user, "Packet Edit [BuyItem]", "Attempted to purchase more than stack value");
+                           je2.close();
+                           itemResult1.close();
                            return;
                         }
                      } else {

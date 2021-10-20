@@ -2,12 +2,7 @@ package nereus.requests;
 
 import nereus.ai.MonsterAI;
 import nereus.aqw.Rank;
-import nereus.db.objects.Area;
-import nereus.db.objects.Aura;
-import nereus.db.objects.AuraEffects;
-import nereus.db.objects.Item;
-import nereus.db.objects.Monster;
-import nereus.db.objects.Skill;
+import nereus.db.objects.*;
 import nereus.dispatcher.IRequest;
 import nereus.dispatcher.RequestException;
 import nereus.tasks.DamageOverTime;
@@ -89,8 +84,8 @@ public class Action implements IRequest {
                } else if(maxMana.longValue() > var52.longValue()) {
                   user.properties.put("requestbotcounter", Integer.valueOf(0));
                } else if(targets.intValue() >= 5) {
-                  world.sendServerMessage(user.getName() + " is suspected of botting thus kicked by the server!");
-                  world.users.kick(user);
+                  //world.sendServerMessage(user.getName() + " is suspected of botting thus kicked by the server!");
+                  //world.users.kick(user);
                } else {
                   user.properties.put("requestbotcounter", Integer.valueOf(targets.intValue() + 1));
                }
@@ -157,6 +152,7 @@ public class Action implements IRequest {
             }
 
             JSONObject var58 = new JSONObject();
+            int mainPlayer;
             if(tgtType.equals("m")) {
                MonsterAI var59 = (MonsterAI)monsters.get(Integer.valueOf(tgtId));
                if(var59 == null) {
@@ -244,8 +240,23 @@ public class Action implements IRequest {
                var59.setHealth(var59.getHealth() - damage);
                var59.addTarget(user.getUserId());
                Set var74 = var59.getTargets();
+               Monster mon1 = (Monster)world.monsters.get(var59.monsterId);
+
                if(var59.getHealth() <= 0 && var59.getState() != 0) {
                   var59.die();
+                  if (world.worldbosses.containsKey(mon1.getId())) {
+                     world.wbSpawn.deathTimes.put(mon1.getId(), System.currentTimeMillis());
+                     ((WorldBoss)world.worldbosses.get(mon1.getId())).isActive = false;
+                     ++((WorldBoss)world.worldbosses.get(mon1.getId())).deaths;
+                  }
+
+                  if (mon1.isWorldBoss()) {
+                     world.sendServerMessage("Congratulations! "+ user.getName() +" has dealt the most damage to the World Boss "+ mon1.getName() +".");
+                     world.db.jdbc.run("UPDATE monsters_bosses SET Deaths = Deaths + 1 WHERE MonsterID = ?", new Object[]{mon1.getId()});
+                     world.db.jdbc.run("UPDATE monsters_bosses SET DeathTime = NOW() WHERE MonsterID = ?", new Object[]{mon1.getId()});
+
+                  }
+
                   if(area.isPvP()) {
                      world.rooms.relayPvPEvent(var59, ((Integer)user.properties.get("pvpteam")).intValue());
                      ct.put("pvp", world.rooms.getPvPResult(room));
@@ -272,11 +283,11 @@ public class Action implements IRequest {
                Iterator var71 = var74.iterator();
 
                while(var71.hasNext()) {
-                  int mainPlayer = ((Integer)var71.next()).intValue();
+                  mainPlayer = (Integer)var71.next();
                   User mainExp = ExtensionHelper.instance().getUserById(mainPlayer);
-                  if(mainExp != null) {
-                     if(var59.getState() == 0) {
-                        mainExp.properties.put("state", Integer.valueOf(1));
+                  if (mainExp != null) {
+                     if (var59.getState() == 0) {
+                        mainExp.properties.put("state", 1);
                         world.users.regen(mainExp);
                         var68.add(mainExp.getName());
                      }
@@ -289,15 +300,22 @@ public class Action implements IRequest {
                      var59.removeTarget(mainPlayer);
                   }
                }
+               if (!miss || !dodge){
+                  if(skill.getDsrc().equals("Steal")){
+                     int stealprecent = (int) (skill.getHpregen() * skill.getHitTargets() * 100000);
+                     int hp = (Integer)user.properties.get("hp");
+                     hp += rand.nextInt(stealprecent);
+                  }
+               }
 
-               if(!var68.isEmpty()) {
+               if (!var68.isEmpty()) {
                   var58.put("targets", var68);
                }
 
-               var58.put("intState", Integer.valueOf(var59.getState()));
-               var58.put("intHP", Integer.valueOf(var59.getHealth()));
-               if(var59.getState() == 0) {
-                  var58.put("intMP", Integer.valueOf(var59.getMana()));
+               var58.put("intState", var59.getState());
+               var58.put("intHP", var59.getHealth());
+               if (var59.getState() == 0) {
+                  var58.put("intMP", var59.getMana());
                }
 
                m.put(String.valueOf(tgtId), var58);

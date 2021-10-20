@@ -22,6 +22,7 @@ public class ConfigData {
    public static int DB_MAX_CONNECTIONS;
 
    public static String SERVER_NAME;
+   public static boolean SERVER_GUI;
    public static String SERVER_PROFILE_LINK;
    public static String SERVER_GAME_LINK;
 
@@ -45,6 +46,7 @@ public class ConfigData {
 
    public static long DISCORD_GENERAL_CHANNELID;
    public static long DISCORD_LOGS_CHANNELID;
+   public static long DISCORD_MARKET_CHANNELID;
 
    public static String DISCORD_ZONE_WEBHOOK;
    public static String DISCORD_ZONE_AVATAR;
@@ -148,6 +150,7 @@ public class ConfigData {
          DB_MAX_CONNECTIONS = Integer.parseInt(config.getProperty("database.connections.max"));
          SERVER_NAME = config.getProperty("server.name");
          STAFF_ONLY = Boolean.parseBoolean(config.getProperty("server.staffonly"));
+         SERVER_GUI = Boolean.parseBoolean(config.getProperty("server.gui"));
          ANTI_MESSAGEFLOOD_MIN_MSG_TIME = Long.parseLong(config.getProperty("antiflood.message.minimumtime"));
          ANTI_MESSAGEFLOOD_TOLERANCE = Integer.parseInt(config.getProperty("antiflood.message.tolerance"));
          ANTI_MESSAGEFLOOD_MAX_REPEATED = Integer.parseInt(config.getProperty("antiflood.message.maxrepeated"));
@@ -161,6 +164,7 @@ public class ConfigData {
 
          DISCORD_GENERAL_CHANNELID = Long.parseLong(config.getProperty("discord.general.channelid"));
          DISCORD_LOGS_CHANNELID = Long.parseLong(config.getProperty("discord.logs.channelid"));
+         DISCORD_MARKET_CHANNELID = Long.parseLong(config.getProperty("discord.market.channelid"));
 
          DISCORD_BOT_AVATAR = config.getProperty("discord.bot.avatar");
          DISCORD_BOT_TOKEN = config.getProperty("discord.bot.token");

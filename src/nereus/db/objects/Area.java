@@ -14,7 +14,7 @@ public class Area
 {
     protected String name, file, music;
     protected int id, maxPlayers, reqLevel, musicStrength;
-    private Boolean upgrade, staff, PvP, firstJoin;
+    private Boolean upgrade, staff, PvP, firstJoin, WorldBoss;
     public Set<MapMonster> monsters = Collections.EMPTY_SET;
     public Map<Integer, Cell> cells = Collections.EMPTY_MAP;
     public Set<Integer> items = Collections.EMPTY_SET;
@@ -45,6 +45,7 @@ public class Area
             area.staff = rs.getBoolean("Staff");
             area.PvP = rs.getBoolean("PvP");
             area.firstJoin = rs.getBoolean("firstJoin");
+            area.WorldBoss = rs.getBoolean("WorldBoss");
 
             return new AbstractMap.SimpleEntry(area.getName(), area);
         }
@@ -101,5 +102,8 @@ public class Area
 
     public boolean isFirstJoin() {
         return firstJoin;
+    }
+    public boolean isWorldBoss() {
+        return this.WorldBoss;
     }
 }

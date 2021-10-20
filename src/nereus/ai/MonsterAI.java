@@ -158,7 +158,6 @@ public class MonsterAI implements Runnable {
                         this.world.scheduleTask(new MonsterAttack(this, skillData, this.world, this.room), 1800L, TimeUnit.MILLISECONDS, false);
                      }
                   }
-
                   return;
                }
 
@@ -192,8 +191,8 @@ public class MonsterAI implements Runnable {
    }
 
    public void die() {
-      if(this.state != 0) {
-         if(this.attacking != null) {
+      if (this.state != 0) {
+         if (this.attacking != null) {
             this.attacking.cancel(true);
          }
 
@@ -209,14 +208,17 @@ public class MonsterAI implements Runnable {
          this.health = 0;
          this.mana = 0;
          this.state = 0;
-         Monster mon1 = (Monster)this.world.monsters.get(Integer.valueOf(this.monsterId));
-         this.world.scheduleTask(new MonsterRespawn(this.world, this), 20L, TimeUnit.SECONDS);
+         Monster mon1 = (Monster)this.world.monsters.get(this.monsterId);
+         if (!mon1.isWorldBoss()) {
+            this.world.scheduleTask(new MonsterRespawn(this.world, this), 5L, TimeUnit.SECONDS);
+         }
+
          HashSet drops1 = new HashSet();
          Iterator i$ = mon1.drops.iterator();
 
          while(i$.hasNext()) {
             MonsterDrop userId = (MonsterDrop)i$.next();
-            if(Math.random() <= userId.chance * (double)this.world.DROP_RATE) {
+            if (Math.random() <= userId.chance * (double)this.world.DROP_RATE) {
                drops1.add(userId);
             }
          }
@@ -226,11 +228,11 @@ public class MonsterAI implements Runnable {
          while(true) {
             User user;
             do {
-               if(!i$.hasNext()) {
+               if (!i$.hasNext()) {
                   return;
                }
 
-               int userId1 = ((Integer)i$.next()).intValue();
+               int userId1 = (Integer)i$.next();
                user = ExtensionHelper.instance().getUserById(userId1);
             } while(user == null);
 
@@ -240,7 +242,6 @@ public class MonsterAI implements Runnable {
                MonsterDrop md = (MonsterDrop)i$1.next();
                this.world.users.dropItem(user, md.itemId, md.quantity);
             }
-
             this.world.users.giveRewards(user, mon1.getExperience(), mon1.getGold(), 0, mon1.getReputation(), 0, -1, this.mapId, "m");
          }
       }

@@ -18,12 +18,13 @@ public class Quest {
    private int reqClassPoints;
    private int experience;
    private int gold;
+   private int coins;
    private int reputation;
    private int classPoints;
    private int level;
    private int slot;
    private int value;
-   private int index, coins;
+   private int index;
 
    private String name;
    private String description;
@@ -96,6 +97,8 @@ public class Quest {
 
          quest.once = rs.getBoolean("Once");
          quest.upgrade = rs.getBoolean("Upgrade");
+
+         quest.coins = rs.getInt("COins");
 
          return new AbstractMap.SimpleEntry(Integer.valueOf(quest.getId()), quest);
       }

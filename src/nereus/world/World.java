@@ -9,6 +9,7 @@ import nereus.tasks.FreeSFSPool;
 import nereus.tasks.WarzoneQueue;
 import nereus.world.stats.Stats;
 import nereus.tasks.Restart;
+import nereus.tasks.WBSpawn;
 import nereus.discord.Bot;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -20,14 +21,8 @@ import it.gotoandplay.smartfoxserver.extensions.AbstractExtension;
 import java.nio.channels.SocketChannel;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.text.DecimalFormat;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -99,12 +94,15 @@ public class World {
     public HashMap<String, Double> coreValues;
     public HashMap<String, Integer> chatFilters;
     public HashMap<Integer, Integer> specialskills;
+    public HashMap<Integer, WorldBoss> worldbosses;
+    public HashMap<Integer, String> worldBossMaps;
     public HashMap<Integer, Title> titles;
     public Database db;
     public Users users;
     public Rooms rooms;
     public Parties parties;
     public WarzoneQueue warzoneQueue;
+    public WBSpawn wbSpawn;
     public Zone zone;
     public String messageOfTheDay;
     public String newsString;
@@ -113,6 +111,7 @@ public class World {
     public int GOLD_RATE = 1;
     public int REP_RATE = 1;
     public int DROP_RATE = 1;
+    public Calendar now;
     private AbstractExtension ext;
     private ScheduledExecutorService tasks;
     public Bot bot;
@@ -127,12 +126,13 @@ public class World {
         this.rooms = new Rooms(zone, this);
         this.users = new Users(zone, this);
         this.parties = new Parties();
+        this.retrieveDatabaseObject("all");
         this.tasks = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors());
         this.warzoneQueue = new WarzoneQueue(this);
         this.tasks.scheduleAtFixedRate(this.warzoneQueue, 5L, 5L, TimeUnit.SECONDS);
         this.tasks.scheduleAtFixedRate(new ACGiveaway(this), 30L, 30L, TimeUnit.MINUTES);
         this.tasks.scheduleAtFixedRate(new FreeSFSPool(), 30L, 30L, TimeUnit.MINUTES);
-        this.retrieveDatabaseObject("all");
+        this.tasks.scheduleAtFixedRate(wbSpawn = new WBSpawn(this), 1, 1, TimeUnit.SECONDS);
         this.bot = new Bot(ConfigData.DISCORD_BOT_TOKEN, this);
         SmartFoxServer.log.info("World initialized.");
     }
@@ -363,6 +363,17 @@ public class World {
                 this.chatFilters = chatFiltersData;
                 SmartFoxServer.log.info("Server settings retrieved.");
                 break;
+            case"worldboss":
+                HashMap<Integer, WorldBoss> bossData = new HashMap<Integer, WorldBoss>(this.db.jdbc.queryForMap("SELECT * FROM monsters_bosses", WorldBoss.resultSetMapper));
+                this.worldbosses = bossData;
+
+                this.worldBossMaps = new HashMap<Integer, String>();
+                for (Map.Entry<Integer, WorldBoss> entry : worldbosses.entrySet()) {
+                    String mapName = this.db.jdbc.queryForString("SELECT Name FROM maps WHERE id = ?", entry.getValue().mapId);
+                    this.worldBossMaps.put(entry.getValue().mapId, mapName);
+                }
+                SmartFoxServer.log.info("WorldBoss objects retrieved.");
+                break;
             case "all":
                 this.retrieveDatabaseObject("item");
                 this.retrieveDatabaseObject("map");
@@ -370,6 +381,7 @@ public class World {
                 this.retrieveDatabaseObject("shop");
                 this.retrieveDatabaseObject("title");
                 this.retrieveDatabaseObject("settings");
+                this.retrieveDatabaseObject("worldboss");
                 break;
         }
 
@@ -666,7 +678,10 @@ public class World {
         }
 
     }
-
+    public String toProperNumber(int amount) {
+        DecimalFormat formatter = new DecimalFormat("#,###");
+        return formatter.format(amount);
+    }
     public void sendGuildUpdate(JSONObject guildObj) {
         this.sendGuildUpdateButOne((User) null, guildObj);
     }

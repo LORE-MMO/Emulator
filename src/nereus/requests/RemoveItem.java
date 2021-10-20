@@ -48,7 +48,7 @@ public class RemoveItem implements IRequest {
                if(quantityToRemove > 1) {
                   delete1.put("iQty", Integer.valueOf(quantityToRemove));
                }
-
+               itemResult.close();
                world.send(delete1, user);
             } else {
                world.users.log(user, "Packet Edit [RemoveItem]", "Attempted to delete an item not in possession");

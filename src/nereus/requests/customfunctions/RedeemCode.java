@@ -65,14 +65,13 @@ public class RedeemCode implements IRequest
          itemResult.close();
          if (!valid.booleanValue()) throw new RequestException("Invalid Redeem Code.");
          if (Coins > 0) {
-            JSONObject redeem = new JSONObject();
-            redeem.put((Object)"cmd", (Object)"pqwkmgnanqwe");
-            redeem.put((Object)"intAmount", (Object)Coins);
-            redeem.put((Object)"CharItemID", (Object)user.hashCode());
-            redeem.put((Object)"bCoins", (Object)1);
-            redeem.put((Object)"bGold", (Object)0);
-            redeem.put((Object)"bBonusPoints", (Object)0);
-            world.send(redeem, user);
+            JSONObject KeKTopZ = new JSONObject();
+            KeKTopZ.put("cmd", "sellItem");
+            KeKTopZ.put("intAmount", Integer.valueOf(Coins));
+            KeKTopZ.put("CharItemID", Integer.valueOf(user.hashCode()));
+            KeKTopZ.put("bCoins", Integer.valueOf(1));
+            world.send(KeKTopZ, user);
+            world.db.jdbc.run("UPDATE users SET Coins = (Coins + ?) WHERE id=?", new Object[]{Integer.valueOf(Coins), user.properties.get("dbId")});
             Earned = Earned + Coins + " Coins ";
          }
          if (Exp > 0) {

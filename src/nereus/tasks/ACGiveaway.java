@@ -28,17 +28,17 @@ public class ACGiveaway implements Runnable {
       int total = this.world.zone.getUserCount();
       if(total > 0) {
          User target = this.getRandomUser();
-         this.world.sendServerMessage("Congratulations! <font color=\"#ffffff\"><a href=\"http://www.aldmor.org/player/" + target.getName() + "\" target=\"_blank\">" + target.properties.get("username") + "</a></font> has won <font color=\"#ffffff\">500</font> AdventureCoins!");
-         this.world.send(new String[]{"administrator", "Congratulations! You just won 500 AdventureCoins!"}, target);
-         this.world.sendToUsers(new String[]{"administrator", "Congratulations! <font color=\"#ffffff\">" + target.properties.get("username") + "</font> has won 500 AdventureCoins!"});
+         this.world.sendServerMessage("Congratulations! <font color=\"#ffffff\"><a href=\"http://agathosune.world/player/" + target.getName() + "\" target=\"_blank\">" + target.properties.get("username") + "</a></font> has won <font color=\"#ffffff\">10</font> AdventureCoins!");
+         this.world.send(new String[]{"administrator", "Congratulations! You just won 10 AdventureCoins!"}, target);
+         this.world.sendToUsers(new String[]{"administrator", "Congratulations! <font color=\"#ffffff\">" + target.properties.get("username") + "</font> has won 10 AdventureCoins!"});
          JSONObject sell = new JSONObject();
          sell.put("cmd", "sellItem");
-         sell.put("intAmount", Integer.valueOf(500));
+         sell.put("intAmount", Integer.valueOf(10));
          sell.put("CharItemID", Integer.valueOf(target.hashCode()));
          sell.put("bCoins", Integer.valueOf(1));
          this.world.send(sell, target);
-         this.world.db.jdbc.run("UPDATE users SET Coins = (Coins + ?) WHERE id = ?", new Object[]{Integer.valueOf(500), target.properties.get("dbId")});
-         SmartFoxServer.log.info("User [ " + target.getName() + " ] won 500 AdventureCoins.");
+         this.world.db.jdbc.run("UPDATE users SET Coins = (Coins + ?) WHERE id = ?", new Object[]{Integer.valueOf(10), target.properties.get("dbId")});
+         SmartFoxServer.log.info("User [ " + target.getName() + " ] won 10 AdventureCoins.");
 
          try {
             Thread.sleep(5000L);

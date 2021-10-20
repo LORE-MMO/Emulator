@@ -18,7 +18,7 @@ public class Skill {
     private String effects;
     private String type;
     private String strl;
-    private double damage;
+    private double damage,hpregen;
     private int id;
     private int mana;
     private int range;
@@ -57,6 +57,9 @@ public class Skill {
             skill.hitTargets = rs.getInt("HitTargets");
             skill.cooldown = rs.getInt("Cooldown");
             skill.auraId = rs.getInt("AuraID");
+
+            skill.hpregen = rs.getInt("HealthRegeneration");
+
 
             return new AbstractMap.SimpleEntry(Integer.valueOf(skill.id), skill);
         }
@@ -117,6 +120,11 @@ public class Skill {
     public double getDamage() {
         return this.damage;
     }
+
+    public double getHpregen() {
+        return this.hpregen;
+    }
+
 
     public int getMana() {
         return this.mana;
