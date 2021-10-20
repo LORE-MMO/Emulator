@@ -1815,7 +1815,7 @@ public class Users {
          }
       }
 
-      this.world.db.jdbc.run("UPDATE users SET LastArea = ?, CurrentServer = \'Offline\' WHERE id = ?", new Object[]{user.properties.get(Users.LAST_AREA), user.properties.get(Users.DATABASE_ID)});
+      this.world.db.jdbc.run("UPDATE users SET LastArea = ?, LastPlayed = NOW(), CurrentServer = \'Offline\' WHERE id = ?", new Object[]{user.properties.get(Users.LAST_AREA), user.properties.get(Users.DATABASE_ID)});
       int guildId1 = ((Integer) user.properties.get(Users.GUILD_ID)).intValue();
       if (guildId1 > 0) {
          this.world.sendGuildUpdate(this.getGuildObject(guildId1));

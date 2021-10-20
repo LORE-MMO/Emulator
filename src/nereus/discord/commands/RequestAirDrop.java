@@ -50,7 +50,8 @@ public class RequestAirDrop implements IDiscord
                 return;
             }
             world.sendToUsers(new String[] {"serverevent", "A dropbox has spawned into our discord channel containing " + item.getName() + ", hop in to win!"});
-            TextChannel textchannel = (TextChannel)world.bot.api.getTextChannelById(ConfigData.DISCORD_GENERAL_CHANNELID).get();
+            // TextChannel textchannel = (TextChannel)world.bot.api.getTextChannelById(ConfigData.DISCORD_GENERAL_CHANNELID).get();
+            TextChannel textchannel = event.getChannel();
 
             EmbedBuilder first = new EmbedBuilder();
             first.setAuthor("An airdrop has landed!", null, ConfigData.DISCORD_BOT_AVATAR);
