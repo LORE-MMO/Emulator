@@ -37,7 +37,7 @@ public class RequestInfo implements IDiscord
                 String Username = rs.getString("username");
                 String Rank = rs.getString("Rank");
                 String DateCreated = (new SimpleDateFormat("yyyy-MM-dd")).format(rs.getDate("DateCreated"));
-                String LastLogin = (new SimpleDateFormat("yyyy-MM-dd hh:mm:ss a")).format(rs.getDate("LastLogin"));
+                String LastLogin = (new SimpleDateFormat("yyyy-MM-dd hh:mm:ss a")).format(rs.getDate("LastPlayed"));
                 int Gold = rs.getInt("Gold");
                 int Coins = rs.getInt("Coins");
 
