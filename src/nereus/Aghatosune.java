@@ -64,8 +64,8 @@ public class Aghatosune extends AbstractExtension
       this.world = new World(this, this.helper.getZone(this.getOwnerZone()));
       this.console.setWorld(this.world);
       this.console.setHelper(this.helper);
-      this.world.db.jdbc.run("UPDATE servers SET Online = 1 WHERE Name = ?", ConfigData.SERVER_NAME);
-//      if (ConfigData.SERVER_GUI) {
+      this.world.db.jdbc.run("UPDATE servers SET Online = 1 WHERE Name = ?", new Object[]{ConfigData.SERVER_NAME});
+      if (Boolean.parseBoolean(System.getProperty("gui", "false"))) {
          try {
             javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
             this.ui = new UserInterface(this.world);
@@ -75,16 +75,14 @@ public class Aghatosune extends AbstractExtension
          } catch (IllegalAccessException ex) {
          } catch (IOException ex) {
          }
-
          java.awt.EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
                ui.setVisible(true);
             }
          });
-//      }
-      SmartFoxServer.log.info("GUI HARUS NYA SUDAH TERBUKA");
-      SmartFoxServer.log.info("Nereus World initialized");
+      }
+
    }
 
    public void handleRequest(String cmd, ActionscriptObject ao, User user, int fromRoom) {
@@ -153,20 +151,11 @@ public class Aghatosune extends AbstractExtension
 
    @Override
    public void handleRequest(String cmd, String[] params, User user, int fromRoom) {
-//      SmartFoxServer.log.fine("Recieved request: " + cmd);
       if (user == null) return;
       if (isRequestFiltered(user, cmd)) return;
 
       if (this.requests.containsKey(cmd)) {
          SmartFoxServer.log.fine("Processing request from: " + user.properties.get(Users.USERNAME) + " - " + cmd);
-//         try {
-//
-//            webhook.setContent("**[FINE]** Processing request from: **" + user.properties.get(Users.USERNAME) + "** - **" + cmd + "**");
-//            webhook.setTts(false);
-//            webhook.execute();
-//         } catch (IOException e) {
-//            SmartFoxServer.log.severe(ConfigData.DISCORD_SERVER_NAME + " is unable to send Webhook: " + e);
-//         }
          int access = (Integer) user.properties.get(Users.ACCESS);
          if (access <= 0 && !this.allowedRequestsForBannedUsers.contains(cmd)) {
             this.world.send(new String[]{"warning", "Your account is currently disabled. Actions in-game are limited."}, user);
@@ -212,14 +201,6 @@ public class Aghatosune extends AbstractExtension
    {
       String event = ieo.getEventName();
       SmartFoxServer.log.fine("System event: " + ieo.getEventName());
-//      try {
-//         webhook.setContent("**[FINE]** System event: **" + ieo.getEventName() + "**");
-//         webhook.setTts(false);
-//         webhook.execute();
-//      } catch (IOException e) {
-//         SmartFoxServer.log.severe(ConfigData.DISCORD_SERVER_NAME + " is unable to send Webhook: " + e);
-//      }
-
       if (event.equals(InternalEventObject.EVENT_SERVER_READY)) {
          this.console.start();
       } else if (event.equals(InternalEventObject.EVENT_LOGIN)) {
@@ -237,13 +218,6 @@ public class Aghatosune extends AbstractExtension
          }
       } else if (event.equals(InternalEventObject.EVENT_NEW_ROOM)) {
          Room room = (Room) ieo.getObject("room");
-//         try {
-//            webhook.setContent("**[FINE]** New room created: **" + room.getName() + "**");
-//            webhook.setTts(false);
-//            webhook.execute();
-//         } catch (IOException e) {
-//            SmartFoxServer.log.severe(ConfigData.DISCORD_SERVER_NAME + " is unable to send Webhook: " + e);
-//         }
          SmartFoxServer.log.fine("New room created: " + room.getName());
       } else if (event.equals(InternalEventObject.EVENT_JOIN)) {
          Room room = (Room) ieo.getObject("room");
