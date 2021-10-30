@@ -49,12 +49,12 @@ public class RetrieveInventory implements IRequest {
       JSONObject updateFriend = new JSONObject();
       JSONObject friendInfo = new JSONObject();
       updateFriend.put("cmd", "updateFriend");
-      friendInfo.put("iLvl", (Integer)user.properties.get("level"));
       friendInfo.put("ID", user.properties.get("dbId"));
       friendInfo.put("sName", user.properties.get("username"));
       friendInfo.put("sServer", ConfigData.SERVER_NAME);
       updateFriend.put("friend", friendInfo);
       QueryResult result = world.db.jdbc.query("SELECT username FROM users LEFT JOIN users_friends ON FriendID = id WHERE UserID = ?", new Object[]{user.properties.get("dbId")});
+      friendInfo.put("iLvl", (Integer)user.properties.get("level"));
 
       while(result.next()) {
          User guildId = world.zone.getUserByName(result.getString("username").toLowerCase());
