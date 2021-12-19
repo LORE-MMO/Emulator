@@ -1,5 +1,6 @@
 package nereus.requests;
 
+import com.google.common.collect.HashMultimap;
 import nereus.db.objects.Item;
 import nereus.db.objects.Title;
 import nereus.dispatcher.IRequest;
@@ -11,7 +12,11 @@ import it.gotoandplay.smartfoxserver.data.User;
 import jdbchelper.QueryResult;
 import net.sf.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.Random;
+
 public class ServerUseItem implements IRequest {
+   private static final Random rand = new Random();
    public ServerUseItem() {
       super();
    }
@@ -42,6 +47,42 @@ public class ServerUseItem implements IRequest {
                            umsg.put("strGlow", "green,medium");
                            world.send(umsg, user);
                         }
+                     }
+                     break;
+                  case"bundle":
+                     if(world.users.turnInItem(user, itemid, 1)){
+                        int bundleid = Integer.parseInt(itemParams[1]);
+                        HashMultimap bundlereward = HashMultimap.create();
+                        HashMultimap bundlepercent = HashMultimap.create();
+                        QueryResult result = world.db.jdbc.query("SELECT * FROM items_bundle WHERE ItemID = ?", new Object[]{bundleid});
+                        while(result.next()) {
+                           int Itemid = result.getInt("ItemID");
+                           int RewardID = result.getInt("RewardID");
+                           int Quantity = result.getInt("Quantity");
+                           double Chance = result.getDouble("Chance");
+                           String RewardType = result.getString("RewardType");
+                           if (RewardType.equals("Certainly")){
+                              world.users.dropItem(user, RewardID, Quantity);
+                           }else if(RewardType.equals("Random")){
+                              bundlereward.put(RewardID, Quantity);
+                              bundlepercent.put(RewardID, Chance);
+                           }
+                        }
+                        result.close();
+
+                        if (bundlereward.size() > 0) {
+                           ArrayList keys1 = new ArrayList(bundlereward.keySet());
+                           int randomKey1 = (Integer)keys1.get(rand.nextInt(keys1.size()));
+                           Object[] qty1 = bundlereward.get(randomKey1).toArray();
+                           int randomValue1 = (Integer)qty1[rand.nextInt(qty1.length)];
+                           Object[] rate1 = bundlepercent.get(randomKey1).toArray();
+                           Double rateValue = (Double)rate1[rand.nextInt(rate1.length)];
+                           if (Math.random() > rateValue) {
+                           } else {
+                              world.users.dropItem(user, randomKey1, randomValue1);
+                           }
+                        }
+                        result.close();
                      }
                      break;
                   default:
