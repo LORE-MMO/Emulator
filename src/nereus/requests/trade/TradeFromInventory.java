@@ -50,6 +50,12 @@ public class TradeFromInventory implements IRequest {
          SmartFoxServer.log.warning("Attempting to put negative item quantity amount: " + user.properties.get("username"));
          world.users.log(user, "Packet Edit [TradeFromInventory]", "Doing quantity black majiks");
          world.users.kick(user);
+      } else if (item.getMeta() != null && item.getMeta().toLowerCase().equals("nosell")) {
+         JSONObject tr = new JSONObject();
+         tr.put("cmd", "tradeFromInv");
+         tr.put("bitSuccess", 0);
+         tr.put("msg", item.getName() + " is a non-tradable item!");
+         world.send(tr, user);
       } else {
          if(item.getFactionId() > 1) {
             Map je = (Map)client.properties.get("factions");

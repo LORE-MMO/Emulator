@@ -26,7 +26,7 @@ public class EquipItem implements IRequest {
       JSONObject cac;
       Item item = (Item)world.items.get(Integer.valueOf(itemId));
       if(item.isStaff() && !user.isAdmin() && !user.isModerator()) {
-         world.db.jdbc.run("UPDATE users SET Access = 0, PermamuteFlag = 0 WHERE id = ?", new Object[]{user.properties.get(Users.DATABASE_ID)});
+//         world.db.jdbc.run("UPDATE users SET Access = 0, PermamuteFlag = 0 WHERE id = ?", new Object[]{user.properties.get(Users.DATABASE_ID)});
          world.users.kick(user);
          world.users.log(user, "Packet Edit [EquipItem]", "Banned for item id exploit.");
       }

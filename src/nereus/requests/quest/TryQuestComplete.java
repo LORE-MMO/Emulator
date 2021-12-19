@@ -61,6 +61,13 @@ public class TryQuestComplete implements IRequest
             world.users.log(user, "Packet Edit [TryQuestComplete]", "Failed to pass achievement validation while attempting to complete quest: " + quest.getName());
             return;
          }
+         if (!quest.getField().isEmpty() && world.users.getAchievement(quest.getField(), quest.getIndex(), user) != 0) {
+            ccqr1.put("bSuccess", 0);
+            world.send(ccqr1, user);
+            world.users.log(user, "Packet Edit [TryQuestComplete]", "Failed to pass achievement validation while attempting to complete quest: " + quest.getName());
+            world.send(new String[]{"server", "Quest daily/monthly limit has been reached. Please try again later."}, user);
+            return;
+         }
 
          if(world.users.turnInItems(user, quest.requirements)) {
             if(doom.contains(Integer.valueOf(questId))) {
@@ -156,14 +163,35 @@ public class TryQuestComplete implements IRequest
             ccqr1.put("rewardObj", rewardObj1);
             ccqr1.put("sName", quest.getName());
 
-            if (quest.getSlot() > 0 && world.users.getQuestValue(user, quest.getSlot()) < quest.getValue()) {
-               world.users.setQuestValue(user, quest.getSlot(), quest.getValue());
+            if (quest.getSlot() > 0) {
+               if (world.users.getQuestValue(user, quest.getSlot()) >= quest.getValue()) {
+                  //mencegah Quest Chain yang mengulang save pointnya
+               } else {
+                  world.users.setQuestValue(user, quest.getSlot(), quest.getValue());
+               }
             }
 
             if(!quest.getField().isEmpty()) {
                world.users.setAchievement(quest.getField(), quest.getIndex(), 1, user);
             }
+            QueryResult achvalueResults = world.db.jdbc.query("SELECT * FROM achievements WHERE QuestsValue = ? AND QuestsSlot = ?", new Object[]{quest.getValue(), quest.getSlot()});
+            if (achvalueResults.next()) {
+               int achCheck = world.db.jdbc.queryForInt("SELECT COUNT(*) AS rowcount FROM users_achievements WHERE UserID = ? AND AchID = ?", new Object[]{user.properties.get("dbId"), achvalueResults.getInt("id")});
+               if (achCheck < 1) {
+                  world.db.jdbc.run("INSERT INTO users_achievements (UserID, AchID) VALUES (?, ?)", new Object[]{user.properties.get("dbId"), achvalueResults.getInt("id")});
+               }
+            }
+            achvalueResults.close();
 
+
+            QueryResult titlelist = world.db.jdbc.query("SELECT * FROM titles WHERE QuestsValue = ? AND QuestsSlot = ?", new Object[]{quest.getValue(), quest.getSlot()});
+            if (titlelist.next()) {
+               int titlecheck = world.db.jdbc.queryForInt("SELECT COUNT(*) AS rowcount FROM users_titles WHERE UserID = ? AND TitleID = ?", new Object[]{user.properties.get("dbId"), titlelist.getInt("titleid")});
+               if (titlecheck < 1) {
+                  world.db.jdbc.run("INSERT INTO users_titles (UserID, TitleID) VALUES (?, ?)", new Object[]{user.properties.get("dbId"), titlelist.getInt("titleid")});
+               }
+            }
+            titlelist.close();
             userQuests.remove(Integer.valueOf(questId));
          } else {
             ccqr1.put("bSuccess", Integer.valueOf(0));
