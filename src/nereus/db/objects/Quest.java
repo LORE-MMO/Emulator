@@ -25,84 +25,74 @@ public class Quest {
    private int slot;
    private int value;
    private int index;
-
    private String name;
    private String description;
    private String endText;
    private String rewardType;
    private String field;
-
    private boolean upgrade;
    private boolean once;
-
    public Multimap<Integer, QuestReward> rewards;
    public Map<Integer, Integer> reqd;
    public Map<Integer, Integer> requirements;
    public Set<Integer> locations;
 
-   public static final BeanCreator < Set < Integer >> beanLocations = new BeanCreator() {
-      public Set < Integer > createBean(ResultSet rs) throws SQLException {
-         Set<Integer> set = new HashSet();
-         set.add(rs.getInt("MapID"));
-         while (rs.next()) {
-            set.add(rs.getInt("MapID"));
-         }
-         return set;
-      }
-   };
-
-   //
-   public static final ResultSetMapper < Integer, Integer > requirementsNormalRewardsMapper = new ResultSetMapper() {
-      public AbstractMap.SimpleEntry < Integer, Integer > mapRow(ResultSet rs) throws SQLException {
-         return new AbstractMap.SimpleEntry(rs.getInt("ItemID"), rs.getInt("Quantity"));
-      }
-   };
-
-   public static final ResultSetMapper < Integer, Integer > requirementslocationsRewardsMapper = new ResultSetMapper() {
-      public AbstractMap.SimpleEntry < Integer, Integer > mapRow(ResultSet rs) throws SQLException {
-         return new AbstractMap.SimpleEntry(rs.getInt("ItemID"), rs.getInt("MapID"));
-      }
-   };
-   //
-
-//   public static final ResultSetMapper< Integer, Integer > requirementsRewardsMapper = new ResultSetMapper() {
-//      public AbstractMap.SimpleEntry < Integer, Integer > mapRow(ResultSet rs) throws SQLException {
-//            return new AbstractMap.SimpleEntry(rs.getInt("ItemID"), rs.getInt("Quantity"));
-//      }
-//   };
-
-   public static final ResultSetMapper< Integer, Quest > resultSetMapper = new ResultSetMapper() {
-      public AbstractMap.SimpleEntry< Integer, Quest > mapRow(ResultSet rs) throws SQLException {
-         Quest quest = new Quest();
-         quest.id = rs.getInt("id");
-         quest.factionId = rs.getInt("FactionID");
-         quest.reqReputation = rs.getInt("ReqReputation");
-         quest.reqClassId = rs.getInt("ReqClassID");
-         quest.reqClassPoints = rs.getInt("ReqClassPoints");
-         quest.experience = rs.getInt("Experience");
-         quest.gold = rs.getInt("Gold");
+   public static final BeanCreator<Set<Integer>> beanLocations = new BeanCreator()
+           /*  38:    */   {
+      /*  39:    */     public Set<Integer> createBean(ResultSet rs)
+      /*  40:    */       throws SQLException
+      /*  41:    */     {
+         /*  42: 35 */       Set<Integer> set = new HashSet();
+         /*  43:    */
+         /*  44: 37 */       set.add(Integer.valueOf(rs.getInt("MapID")));
+         /*  45: 39 */       while (rs.next()) {
+            /*  46: 40 */         set.add(Integer.valueOf(rs.getInt("MapID")));
+            /*  47:    */       }
+         /*  48: 42 */       return set;
+         /*  49:    */     }
+      /*  50:    */   };
+   public static final ResultSetMapper<Integer, Integer> requirementsRewardsMapper = new ResultSetMapper()
+           /*  52:    */   {
+      /*  53:    */     public AbstractMap.SimpleEntry<Integer, Integer> mapRow(ResultSet rs)
+      /*  54:    */       throws SQLException
+      /*  55:    */     {
+         /*  56: 50 */       return new AbstractMap.SimpleEntry(Integer.valueOf(rs.getInt("ItemID")), Integer.valueOf(rs.getInt("Quantity")));
+         /*  57:    */     }
+      /*  58:    */   };
+   /*  59: 53 */   public static final ResultSetMapper<Integer, Quest> resultSetMapper = new ResultSetMapper()
+           /*  60:    */   {
+      /*  61:    */     public AbstractMap.SimpleEntry<Integer, Quest> mapRow(ResultSet rs)
+      /*  62:    */       throws SQLException
+      /*  63:    */     {
+         /*  64: 57 */       Quest quest = new Quest();
+         /*  65:    */
+         /*  66: 59 */       quest.id = rs.getInt("id");
+         /*  67: 60 */       quest.factionId = rs.getInt("FactionID");
+         /*  68: 61 */       quest.reqReputation = rs.getInt("ReqReputation");
+         /*  69: 62 */       quest.reqClassId = rs.getInt("ReqClassID");
+         /*  70: 63 */       quest.reqClassPoints = rs.getInt("ReqClassPoints");
+         /*  71: 64 */       quest.experience = rs.getInt("Experience");
+         /*  72: 65 */       quest.gold = rs.getInt("Gold");
+         /*  73: 66 */       quest.reputation = rs.getInt("Reputation");
+         /*  74: 67 */       quest.classPoints = rs.getInt("ClassPoints");
+         /*  75: 68 */       quest.level = rs.getInt("Level");
+         /*  76: 69 */       quest.slot = rs.getInt("Slot");
+         /*  77: 70 */       quest.value = rs.getInt("Value");
+         /*  78: 71 */       quest.index = rs.getInt("Index");
          quest.coins = rs.getInt("Coins");
-         quest.reputation = rs.getInt("Reputation");
-         quest.classPoints = rs.getInt("ClassPoints");
-         quest.level = rs.getInt("Level");
-         quest.slot = rs.getInt("ChainID");
-         quest.value = rs.getInt("Value");
-         quest.index = rs.getInt("Index");
-
-         quest.name = rs.getString("Name");
-         quest.description = rs.getString("Description");
-         quest.endText = rs.getString("EndText");
-         quest.rewardType = rs.getString("RewardType");
-         quest.field = rs.getString("Field");
-
-         quest.once = rs.getBoolean("Once");
-         quest.upgrade = rs.getBoolean("Upgrade");
-
-         quest.coins = rs.getInt("COins");
-
-         return new AbstractMap.SimpleEntry(Integer.valueOf(quest.getId()), quest);
-      }
-   };
+         /*  79:    */
+         /*  80: 73 */       quest.name = rs.getString("Name");
+         /*  81: 74 */       quest.description = rs.getString("Description");
+         /*  82: 75 */       quest.endText = rs.getString("EndText");
+         /*  83: 76 */       quest.rewardType = rs.getString("RewardType");
+         /*  84: 77 */       quest.field = rs.getString("Field");
+         /*  85:    */
+         /*  86: 79 */       quest.once = rs.getBoolean("Once");
+         /*  87: 80 */       quest.upgrade = rs.getBoolean("Upgrade");
+         /*  88:    */
+         /*  89: 82 */       return new AbstractMap.SimpleEntry(Integer.valueOf(quest.getId()), quest);
+         /*  90:    */     }
+      /*  91:    */   };
 
    public Quest() {
       super();
@@ -136,16 +126,16 @@ public class Quest {
       return this.gold;
    }
 
-   public int getCoins() {
-      return this.coins;
-   }
-
    public int getReputation() {
       return this.reputation;
    }
 
    public int getClassPoints() {
       return this.classPoints;
+   }
+   public int getCoins()
+   {
+      return this.coins;
    }
 
    public int getLevel() {

@@ -176,9 +176,9 @@ public class TryQuestComplete implements IRequest
 
    private void doWheel(User user, World world, String wheelType) throws RequestException {
       JSONObject wheel = new JSONObject();
-      ArrayList keys = new ArrayList(world.wheels.keySet());
+      ArrayList keys = new ArrayList(world.wheelsItems.keySet());
       int itemId = ((Integer)keys.get(rand.nextInt(keys.size()))).intValue();
-      Double chance = (Double)world.wheels.get(Integer.valueOf(itemId));
+      Double chance = (Double)world.wheelsItems.get(Integer.valueOf(itemId));
       Item item = (Item)world.items.get(Integer.valueOf(itemId));
       if(Math.random() > chance.doubleValue()) {
          this.doWheel(user, world, wheelType);

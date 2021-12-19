@@ -93,6 +93,29 @@ public class EquipItem implements IRequest {
                   JSONObject houseId = eqp.getJSONObject("ar");
                   world.users.loadSkills(user, (Item)world.items.get(houseId.getInt("ItemID")), (Integer) user.properties.get(Users.CLASS_POINTS));
                }
+               if (item.passives.iterator().hasNext()) {
+                  double bonusRates;
+                  if (item.passives.iterator().next().getExtraExp() > 0) {
+                     bonusRates = 100 * item.passives.iterator().next().getExtraExp();
+                     world.applyEffect((int) bonusRates + "% EXP", user);
+                  }
+                  if (item.passives.iterator().next().getExtragold() > 0) {
+                     bonusRates = 100 * item.passives.iterator().next().getExtragold();
+                     world.applyEffect((int) bonusRates +"% Gold", user);
+                  }
+                  if (item.passives.iterator().next().getExtracoins() > 0) {
+                     bonusRates = 100 * item.passives.iterator().next().getExtracoins();
+                     world.applyEffect((int) bonusRates +"% Coins", user);
+                  }
+                  if (item.passives.iterator().next().getDamageincrease() > 0) {
+                     bonusRates = 100 * item.passives.iterator().next().getDamageincrease();
+                     world.applyEffect((int) bonusRates +"% Damage Increase", user);
+                  }
+                  if (item.passives.iterator().next().getDamageTaken() > 0) {
+                     bonusRates = 100 * item.passives.iterator().next().getDamageTaken();
+                     world.applyEffect((int) bonusRates +"% Damage Reduction", user);
+                  }
+               }
 
                eqp.put(item.getEquipment(), eqpObj);
                world.sendToRoom(var29, user, room);

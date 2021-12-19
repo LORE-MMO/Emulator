@@ -79,6 +79,7 @@ public class World {
     };
     public HashMap<String, Area> areas;
     public HashMap<Integer, Item> items;
+    public HashMap<Integer, Class> classes;
     public HashMap<Integer, Shop> shops;
     public HashMap<Integer, Hair> hairs;
     public HashMap<Integer, Skill> skills;
@@ -90,7 +91,7 @@ public class World {
     public HashMap<Integer, Hairshop> hairshops;
     public HashMap<Integer, Quest> quests;
     public HashMap<Integer, String> factions;
-    public HashMap<Integer, Double> wheels;
+    public HashMap<Integer, Double> wheelsItems;
     public HashMap<String, Double> coreValues;
     public HashMap<String, Integer> chatFilters;
     public HashMap<Integer, Integer> specialskills;
@@ -123,17 +124,17 @@ public class World {
         this.ext = ext;
         this.zone = zone;
         this.db = new Database(ConfigData.DB_MAX_CONNECTIONS);
+        this.bot = new Bot(ConfigData.DISCORD_BOT_TOKEN, this);
         this.rooms = new Rooms(zone, this);
         this.users = new Users(zone, this);
+        this.retrieveDatabaseObject("pro");
         this.parties = new Parties();
-        this.retrieveDatabaseObject("all");
         this.tasks = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors());
         this.warzoneQueue = new WarzoneQueue(this);
         this.tasks.scheduleAtFixedRate(this.warzoneQueue, 5L, 5L, TimeUnit.SECONDS);
         this.tasks.scheduleAtFixedRate(new ACGiveaway(this), 30L, 30L, TimeUnit.MINUTES);
         this.tasks.scheduleAtFixedRate(new FreeSFSPool(), 30L, 30L, TimeUnit.MINUTES);
         this.tasks.scheduleAtFixedRate(wbSpawn = new WBSpawn(this), 1, 1, TimeUnit.SECONDS);
-        this.bot = new Bot(ConfigData.DISCORD_BOT_TOKEN, this);
         SmartFoxServer.log.info("World initialized.");
     }
 
@@ -155,6 +156,7 @@ public class World {
         this.areas = null;
         this.shops = null;
         this.items = null;
+        this.classes = null;
         this.tasks.shutdown();
         this.tasks = null;
         this.rooms = null;
@@ -173,195 +175,146 @@ public class World {
     }
 
     public final boolean retrieveDatabaseObject(String type) {
-        return retrieveDatabaseObject(type, null);
-    }
+        HashMap coreValuesData;
+        Iterator chatFiltersData;
+        HashMap chatFiltersData1;
+        Iterator auraskill;
+        HashMap caonima;
+        HashMap hairshop;
+        Iterator i$3;
 
-    public final boolean retrieveDatabaseObject(String type, User user) {
-        switch(type.toLowerCase()){
+        switch(type) {
             case "item":
-                HashMap<Integer, Item> itemsData = new HashMap<Integer, Item>(this.db.getJdbc().queryForMap("SELECT * FROM items", Item.resultSetMapper));
-
-                for (Item item : itemsData.values()) {
-                    Map<Integer, Integer> requirements = new HashMap<Integer, Integer>(this.db.getJdbc().queryForMap("SELECT * FROM items_requirements WHERE ItemID = ?", Item.requirementMapper, item.getId()));
-                    item.requirements = requirements;
-
-                    if (item.getEquipment().equals("ar") && !item.getType().equals("Enhancement")) {
-                        Class reward = this.db.jdbc.queryForObject("SELECT * FROM classes WHERE ItemID = ?", Class.beanCreator, new Object[]{Integer.valueOf(item.getId())});
-                        if (reward == null) {
-                            if (user != null)
-                                this.send(new String[]{"server", "An item with the equipment type \'Class\' does not have a matching id in the classes table. ItemID: " + item.getId()}, user);
-                            throw new NullPointerException("An item with the equipment type \'Class\' does not have a matching id in the classes table. ItemID: " + item.getId());
-                        }
-
-                        reward.skills = this.db.jdbc.queryForObject("SELECT id FROM skills WHERE ItemID = ?", Class.beanSkills, new Object[]{Integer.valueOf(item.getId())});
-                        if (reward.skills == null) {
-                            if (user != null)
-                                this.send(new String[]{"server", "A class contains an empty skill set, please delete this item first. ItemID: " + item.getId()}, user);
-                            throw new NullPointerException("A class contains an empty skill set, please delete this item first. ItemID: " + item.getId());
-                        }
-
-                        item.classObj = reward;
+                coreValuesData = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM items WHERE id > 0", Item.resultSetMapper, new Object[]{}));
+                chatFiltersData = coreValuesData.values().iterator();
+                while (chatFiltersData.hasNext()) {
+                    Item item = (Item) chatFiltersData.next();
+                    hairshop = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM items_requirements WHERE ItemID = ?", Item.requirementMapper, new Object[]{Integer.valueOf(item.getId())}));
+                    item.requirements = hairshop;
+                    item.passives = this.db.jdbc.queryForObject("SELECT * FROM items_passive WHERE ItemID = ?", Item.beanPassives, item.getId());
+                    if (item.passives == null) {
+                        item.passives = Collections.EMPTY_SET;
                     }
                 }
-
-                this.items = itemsData;
-
-                HashMap<Integer, Skill> skillsData = new HashMap<Integer, Skill>(this.db.getJdbc().queryForMap("SELECT * FROM skills WHERE id > 0", Skill.resultSetMapper));
-                this.skills = skillsData;
-
-                Skill skill;
-                HashMap skillAurasData;
-                for(Iterator var20 = skillsData.values().iterator(); var20.hasNext(); skill.auras = skillAurasData) {
-                    skill = (Skill)var20.next();
-                    skillAurasData = new HashMap(this.db.getJdbc().queryForMap("SELECT * FROM skills_auras WHERE SkillID = ?", Skill.auraMapper, new Object[]{skill.getId()}));
-                    this.auras = skillAurasData;
-
-                    Iterator auraEffects = skillAurasData.values().iterator();
-                    while (auraEffects.hasNext()) {
-                        Aura ae = (Aura) auraEffects.next();
-                        ae.effects = this.db.jdbc.queryForObject("SELECT * FROM skills_auras_effects WHERE AuraID = ?", Aura.beanEffects, new Object[]{Integer.valueOf(ae.getId())});
-                        if (ae.effects == null) {
-                            ae.effects = Collections.EMPTY_SET;
-                        }
-                    }
-                }
-
-                HashMap<Integer, Aura> aurasData = new HashMap<Integer, Aura>(this.db.getJdbc().queryForMap("SELECT * FROM auras WHERE id > 0", Aura.resultSetMapper));
-                this.auras = aurasData;
-
-                HashMap<Integer, AuraEffects> effectsData = new HashMap<Integer, AuraEffects>(this.db.jdbc.queryForMap("SELECT * FROM skills_auras_effects", AuraEffects.resultSetMapper, new Object[0]));
-                this.effects = effectsData;
-
-                HashMap<Integer, Hair> hairsData = new HashMap<Integer, Hair>(this.db.getJdbc().queryForMap("SELECT * FROM hairs", Hair.resultSetMapper));
-                this.hairs = hairsData;
-
-                HashMap<Integer, String> factionsData = new HashMap<Integer, String>(this.db.getJdbc().queryForMap("SELECT * FROM factions", World.factionsMapper));
-                this.factions = factionsData;
-
-                HashMap wheelsData = new HashMap<Integer, Double>(this.db.getJdbc().queryForMap("SELECT * FROM wheels_rewards", wheelsMapper));
-                this.wheels = wheelsData;
-
-                HashMap<Integer, Integer> specialsData = new HashMap<Integer, Integer>(this.db.getJdbc().queryForMap("SELECT * FROM items_skills", itemSkillsMapper));
-                this.specialskills = specialsData;
+                this.items = coreValuesData;
                 SmartFoxServer.log.info("Item objects retrieved.");
+                break;
+            case "class":
+                coreValuesData = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM classes WHERE ItemID > 0", Class.resultSetMapper, new Object[]{}));
+                chatFiltersData = coreValuesData.values().iterator();
+                while (chatFiltersData.hasNext()) {
+                    Class classes = (Class) chatFiltersData.next();
+                    classes.skills = (Set) this.db.jdbc.queryForObject("SELECT id FROM skills WHERE ItemID = ?", Class.beanSkills, new Object[]{Integer.valueOf(classes.getitemid())});
+                    if (classes.skills == null) {
+                        throw new NullPointerException("A class contains an empty skill set, please delete this item first. ItemID: " + classes.getitemid());
+                    }
+                }
+                this.classes = coreValuesData;
+                SmartFoxServer.log.info("Classes objects retrieved.");
+                break;
+            case "skillauras":
+                caonima = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM skills WHERE id > 0", Skill.resultSetMapper, new Object[0]));
+                auraskill = caonima.values().iterator();
+                Map<Integer, Integer> classid = new HashMap<Integer, Integer>();
+                while (auraskill.hasNext()) {
+                    Skill iniskill = (Skill) auraskill.next();
+                    iniskill.auraskill = ArrayListMultimap.create();
+                    QueryResult hairshop4 = this.db.jdbc.query("SELECT * FROM skills_auras WHERE Skill_ID = ?", new Object[]{Integer.valueOf(iniskill.getId())});
+                    while (hairshop4.next()) {
+                        SkillAuras reward3 = new SkillAuras();
+                        reward3.skillid = hairshop4.getInt("Skill_ID");
+                        reward3.auraid = hairshop4.getInt("Aura_ID");
+                        iniskill.auraskill.put(Integer.valueOf(hairshop4.getInt("Skill_ID")), reward3);
+                    }
+                    hairshop4.close();
+                }
+                this.skills = caonima;
+                HashMap i$1 = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM auras", Aura.resultSetMapper, new Object[0]));
+                this.auras = i$1;
 
-                HashMap<Integer, Enhancement> enhancementsData = new HashMap<Integer, Enhancement>(this.db.getJdbc().queryForMap("SELECT * FROM enhancements", Enhancement.resultSetMapper));
-                this.enhancements = enhancementsData;
+                Iterator hairshop1 = i$1.values().iterator();
 
-                HashMap<Integer, EnhancementPattern> patternsData = new HashMap<Integer, EnhancementPattern>(this.db.getJdbc().queryForMap("SELECT * FROM enhancements_patterns WHERE id > 0", EnhancementPattern.resultSetMapper));
-                this.patterns = patternsData;
+                while (hairshop1.hasNext()) {
+                    Aura reward1 = (Aura) hairshop1.next();
+                    reward1.effects = (Set) this.db.jdbc.queryForObject("SELECT * FROM skills_auras_effects WHERE AuraID = ?", Aura.beanEffects, new Object[]{Integer.valueOf(reward1.getId())});
+                    if (reward1.effects == null) {
+                        reward1.effects = Collections.EMPTY_SET;
+                    }
+                }
 
-                SmartFoxServer.log.info("Enhancements objects retrieved.");
+                hairshop = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM skills_auras_effects", AuraEffects.resultSetMapper, new Object[0]));
+                this.effects = hairshop;
+                SmartFoxServer.log.info("Skill Auras retrieved.");
                 break;
             case "map":
-                HashMap<String, Area> areasData = new HashMap<String, Area>(this.db.getJdbc().queryForMap("SELECT * FROM maps", Area.resultSetMapper));
+                coreValuesData = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM maps", Area.resultSetMapper, new Object[0]));
+                Area i$2;
+                for (chatFiltersData = coreValuesData.values().iterator(); chatFiltersData.hasNext(); i$2.cells = this.db.jdbc.queryForMap("SELECT * FROM maps_cells WHERE MapID = ?", Cell.resultSetMapper, new Object[]{Integer.valueOf(i$2.getId())})) {
+                    i$2 = (Area) chatFiltersData.next();
+                    i$2.monsters = (Set) this.db.jdbc.queryForObject("SELECT * FROM maps_monsters WHERE MapID = ?", MapMonster.setCreator, new Object[]{Integer.valueOf(i$2.getId())});
+                    if (i$2.monsters == null) {
+                        i$2.monsters = Collections.EMPTY_SET;
+                    }
 
-                for (Area area : areasData.values()) {
-                    area.monsters = this.db.getJdbc().queryForObject("SELECT * FROM maps_monsters WHERE MapID = ?", MapMonster.setCreator, area.getId());
-                    if (area.monsters == null)
-                        area.monsters = Collections.EMPTY_SET;
-                    area.items = this.db.getJdbc().queryForObject("SELECT * FROM maps_items WHERE MapID = ?", Area.beanItems, area.getId());
-                    if (area.items == null)
-                        area.items = Collections.EMPTY_SET;
-                    area.cells = this.db.getJdbc().queryForMap("SELECT * FROM maps_cells WHERE MapID = ?", Cell.resultSetMapper, area.getId());
+                    i$2.items = (Set) this.db.jdbc.queryForObject("SELECT * FROM maps_items WHERE MapID = ?", Area.beanItems, new Object[]{Integer.valueOf(i$2.getId())});
+                    if (i$2.items == null) {
+                        i$2.items = Collections.EMPTY_SET;
+                    }
                 }
 
                 if (this.areas != null) {
-                    HashMap<String, Area> oldAreas = new HashMap<String, Area>(this.areas);
+                    chatFiltersData1 = new HashMap(this.areas);
+                    i$3 = chatFiltersData1.entrySet().iterator();
 
-                    for (Iterator<Map.Entry<String, Area>> it = oldAreas.entrySet().iterator(); it.hasNext(); ) {
-                        Map.Entry<String, Area> entry = it.next();
-                        if (!entry.getKey().contains("house-")) it.remove();
+                    while (i$3.hasNext()) {
+                        Map.Entry hairshop2 = (Map.Entry) i$3.next();
+                        if (!((String) hairshop2.getKey()).contains("house-")) {
+                            i$3.remove();
+                        }
                     }
 
-                    areasData.putAll(oldAreas);
+                    coreValuesData.putAll(chatFiltersData1);
                 }
 
-                this.areas = areasData;
+                this.areas = coreValuesData;
+                chatFiltersData1 = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM monsters", Monster.resultSetMapper, new Object[0]));
+                i$3 = chatFiltersData1.values().iterator();
 
-                HashMap<Integer, Monster> monstersData = new HashMap<Integer, Monster>(this.db.getJdbc().queryForMap("SELECT * FROM monsters", Monster.resultSetMapper));
+                while (i$3.hasNext()) {
+                    Monster hairshop3 = (Monster) i$3.next();
+                    hairshop3.drops = (Set) this.db.jdbc.queryForObject("SELECT * FROM monsters_drops WHERE MonsterID = ?", Monster.beanDrops, new Object[]{Integer.valueOf(hairshop3.getId())});
+                    hairshop3.skills = (Set) this.db.jdbc.queryForObject("SELECT * FROM monsters_skills WHERE MonsterID = ?", Monster.beanSkills, new Object[]{Integer.valueOf(hairshop3.getId())});
+                    if (hairshop3.drops == null) {
+                        hairshop3.drops = Collections.EMPTY_SET;
+                    }
 
-                for (Monster monster : monstersData.values()) {
-                    monster.drops = this.db.getJdbc().queryForObject("SELECT * FROM monsters_drops WHERE MonsterID = ?", Monster.beanDrops, monster.getId());
-
-                    if (monster.drops == null)
-                        monster.drops = Collections.EMPTY_SET;
-
-                    monster.skills = this.db.getJdbc().queryForObject("SELECT * FROM monsters_skills WHERE MonsterID = ?", Monster.beanSkills, monster.getId());
-
-                    if (monster.skills == null)
-                        monster.skills = Collections.EMPTY_SET;
+                    if (hairshop3.skills == null) {
+                        hairshop3.skills = Collections.EMPTY_SET;
+                    }
                 }
 
-                this.monsters = monstersData;
+                this.monsters = chatFiltersData1;
                 SmartFoxServer.log.info("Map objects retrieved.");
                 break;
-            case "quest":
-                HashMap<Integer, Quest> questsData = new HashMap<Integer, Quest>(this.db.getJdbc().queryForMap("SELECT * FROM quests", Quest.resultSetMapper));
-
-                for (Quest quest : questsData.values()) {
-                    quest.reqd = this.db.getJdbc().queryForMap("SELECT * FROM quests_reqditems WHERE QuestID = ?", Quest.requirementsNormalRewardsMapper, quest.getId());
-                    quest.rewards = ArrayListMultimap.create();
-
-                    QueryResult rewards = this.db.getJdbc().query("SELECT * FROM quests_rewards WHERE QuestID = ?", quest.getId());
-                    while (rewards.next()) {
-                        QuestReward questReward = new QuestReward();
-                        questReward.itemId = rewards.getInt("ItemID");
-                        questReward.quantity = rewards.getInt("Quantity");
-                        questReward.rate = rewards.getDouble("Rate");
-                        questReward.type = rewards.getString("RewardType");
-                        quest.rewards.put(rewards.getInt("ItemID"), questReward);
-                    }
-                    rewards.close();
-
-                    quest.requirements = this.db.getJdbc().queryForMap("SELECT * FROM quests_requirements WHERE QuestID = ?", Quest.requirementsNormalRewardsMapper, quest.getId());
-                    quest.locations = this.db.getJdbc().queryForObject("SELECT * FROM quests_locations WHERE QuestID = ?", Quest.beanLocations, quest.getId());
-
-                    if (quest.locations == null) quest.locations = Collections.EMPTY_SET;
-                }
-
-                this.quests = questsData;
-                SmartFoxServer.log.info("Quest objects retrieved.");
+            case "rep":
+                HashMap factionsData = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM factions", factionsMapper, new Object[0]));
+                this.factions = factionsData;
+                SmartFoxServer.log.info("Reputation objects retrieved.");
                 break;
-            case "shop":
-                HashMap<Integer, Shop> shopsData = new HashMap<Integer, Shop>(this.db.getJdbc().queryForMap("SELECT * FROM shops", Shop.resultSetMapper));
-
-                for (Shop shop : shopsData.values()) {
-                    shop.items = this.db.getJdbc().queryForMap("SELECT id, ItemID FROM shops_items WHERE ShopID = ?", Shop.shopItemsMapper, shop.getId());
-
-                    shop.locations = this.db.getJdbc().queryForObject("SELECT * FROM shops_locations WHERE ShopID = ?", Shop.beanLocations, shop.getId());
-
-                    if (shop.locations == null)
-                        shop.locations = Collections.EMPTY_SET;
-                }
-
-                this.shops = shopsData;
-
-                HashMap<Integer, Hairshop> hairshopsData = new HashMap<Integer, Hairshop>(this.db.getJdbc().queryForMap("SELECT * FROM hairs_shops", Hairshop.resultSetMapper));
-
-                for (Hairshop hairshop : hairshopsData.values()) {
-                    hairshop.male = this.db.getJdbc().queryForObject("SELECT * FROM hairs_shops_items WHERE Gender = ? AND ShopID = ?", Hairshop.beanHairshopItems, "M", hairshop.getId());
-                    hairshop.female = this.db.getJdbc().queryForObject("SELECT * FROM hairs_shops_items WHERE Gender = ? AND ShopID = ?", Hairshop.beanHairshopItems, "F", hairshop.getId());
-                }
-
-                this.hairshops = hairshopsData;
-                SmartFoxServer.log.info("Shop objects retrieved.");
+            case "specialitem":
+                HashMap specialsData = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM items_skills", itemSkillsMapper, new Object[0]));
+                this.specialskills = specialsData;
+                SmartFoxServer.log.info("Special Item objects retrieved.");
                 break;
-            case "title":
-                HashMap<Integer, Title> titleData = new HashMap<Integer, Title>(this.db.getJdbc().queryForMap("SELECT * FROM titles", Title.resultSetMapper));
-                this.titles = titleData;
-                SmartFoxServer.log.info("Title objects retrieved.");
+            case "hair":
+                HashMap reward2 = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM hairs", Hair.resultSetMapper, new Object[0]));
+                this.hairs = reward2;
+                SmartFoxServer.log.info("Hair objects retrieved.");
                 break;
-            case "settings":
-                this.messageOfTheDay = this.db.getJdbc().queryForString("SELECT MOTD FROM servers WHERE Name = ?", ConfigData.SERVER_NAME);
-                this.newsString = this.db.getJdbc().queryForObject("SELECT * FROM settings", World.newsCreator);
-
-                HashMap<String, Double> coreValuesData = new HashMap<String, Double>(this.db.getJdbc().queryForMap("SELECT * FROM settings_rates", World.coreValuesMapper));
-                this.coreValues = coreValuesData;
-
-                HashMap<String, Integer> chatFiltersData = new HashMap<String, Integer>(this.db.getJdbc().queryForMap("SELECT * FROM settings_filters", chatFiltersMapper));
-                this.chatFilters = chatFiltersData;
-                SmartFoxServer.log.info("Server settings retrieved.");
+            case "wheel":
+                HashMap wheelsData = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM wheels_rewards", wheelsMapper, new Object[0]));
+                this.wheelsItems = wheelsData;
+                SmartFoxServer.log.info("Wheel objects retrieved.");
                 break;
             case"worldboss":
                 HashMap<Integer, WorldBoss> bossData = new HashMap<Integer, WorldBoss>(this.db.jdbc.queryForMap("SELECT * FROM monsters_bosses", WorldBoss.resultSetMapper));
@@ -374,17 +327,115 @@ public class World {
                 }
                 SmartFoxServer.log.info("WorldBoss objects retrieved.");
                 break;
-            case "all":
-                this.retrieveDatabaseObject("item");
-                this.retrieveDatabaseObject("map");
-                this.retrieveDatabaseObject("quest");
-                this.retrieveDatabaseObject("shop");
-                this.retrieveDatabaseObject("title");
-                this.retrieveDatabaseObject("settings");
-                this.retrieveDatabaseObject("worldboss");
-                break;
-        }
+            case "quest":
+                coreValuesData = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM quests", Quest.resultSetMapper, new Object[0]));
+                chatFiltersData = coreValuesData.values().iterator();
 
+                while (chatFiltersData.hasNext()) {
+                    Quest i$4 = (Quest) chatFiltersData.next();
+                    i$4.reqd = this.db.jdbc.queryForMap("SELECT * FROM quests_reqditems WHERE QuestID = ?", Quest.requirementsRewardsMapper, new Object[]{Integer.valueOf(i$4.getId())});
+                    i$4.rewards = ArrayListMultimap.create();
+                    QueryResult hairshop4 = this.db.jdbc.query("SELECT * FROM quests_rewards WHERE QuestID = ?", new Object[]{Integer.valueOf(i$4.getId())});
+
+                    while (hairshop4.next()) {
+                        QuestReward reward3 = new QuestReward();
+                        reward3.itemId = hairshop4.getInt("ItemID");
+                        reward3.quantity = hairshop4.getInt("Quantity");
+                        reward3.rate = hairshop4.getDouble("Rate");
+                        reward3.type = hairshop4.getString("RewardType");
+                        i$4.rewards.put(Integer.valueOf(hairshop4.getInt("ItemID")), reward3);
+                    }
+
+                    hairshop4.close();
+                    i$4.requirements = this.db.jdbc.queryForMap("SELECT * FROM quests_requirements WHERE QuestID = ?", Quest.requirementsRewardsMapper, new Object[]{Integer.valueOf(i$4.getId())});
+                    i$4.locations = (Set) this.db.jdbc.queryForObject("SELECT * FROM quests_locations WHERE QuestID = ?", Quest.beanLocations, new Object[]{Integer.valueOf(i$4.getId())});
+                    if (i$4.locations == null) {
+                        i$4.locations = Collections.EMPTY_SET;
+                    }
+                }
+
+                this.quests = coreValuesData;
+                SmartFoxServer.log.info("Quest objects retrieved.");
+                break;
+            case "shop":
+                coreValuesData = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM shops", Shop.resultSetMapper, new Object[0]));
+                chatFiltersData = coreValuesData.values().iterator();
+
+                while (chatFiltersData.hasNext()) {
+                    Shop i$5 = (Shop) chatFiltersData.next();
+                    i$5.items = this.db.jdbc.queryForMap("SELECT id, ItemID FROM shops_items WHERE ShopID = ?", Shop.shopItemsMapper, new Object[]{Integer.valueOf(i$5.getId())});
+                    i$5.locations = (Set) this.db.jdbc.queryForObject("SELECT * FROM shops_locations WHERE ShopID = ?", Shop.beanLocations, new Object[]{Integer.valueOf(i$5.getId())});
+                    if (i$5.locations == null) {
+                        i$5.locations = Collections.EMPTY_SET;
+                    }
+                }
+
+                this.shops = coreValuesData;
+                chatFiltersData1 = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM hairs_shops", Hairshop.resultSetMapper, new Object[0]));
+
+                Hairshop hairshop5;
+                for (i$3 = chatFiltersData1.values().iterator(); i$3.hasNext(); hairshop5.female = (Set) this.db.jdbc.queryForObject("SELECT * FROM hairs_shops_items WHERE Gender = ? AND ShopID = ?", Hairshop.beanHairshopItems, new Object[]{"F", Integer.valueOf(hairshop5.getId())})) {
+                    hairshop5 = (Hairshop) i$3.next();
+                    hairshop5.male = (Set) this.db.jdbc.queryForObject("SELECT * FROM hairs_shops_items WHERE Gender = ? AND ShopID = ?", Hairshop.beanHairshopItems, new Object[]{"M", Integer.valueOf(hairshop5.getId())});
+                }
+
+                this.hairshops = chatFiltersData1;
+                SmartFoxServer.log.info("Shop objects retrieved.");
+                break;
+            case "enhshop":
+                coreValuesData = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM enhancements", Enhancement.resultSetMapper, new Object[0]));
+                this.enhancements = coreValuesData;
+                chatFiltersData1 = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM enhancements_patterns WHERE id > 0", EnhancementPattern.resultSetMapper, new Object[0]));
+                this.patterns = chatFiltersData1;
+                SmartFoxServer.log.info("Enhancements objects retrieved.");
+                break;
+            case "settings":
+                this.messageOfTheDay = this.db.jdbc.queryForString("SELECT MOTD FROM servers WHERE Name = ?", new Object[]{ConfigData.SERVER_NAME});
+                this.newsString = (String) this.db.jdbc.queryForObject("SELECT * FROM settings", newsCreator, new Object[0]);
+                coreValuesData = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM settings_rates", coreValuesMapper, new Object[0]));
+                this.coreValues = coreValuesData;
+                chatFiltersData1 = new HashMap(this.db.jdbc.queryForMap("SELECT * FROM settings_filters", chatFiltersMapper, new Object[0]));
+                this.chatFilters = chatFiltersData1;
+                SmartFoxServer.log.info("Server settings retrieved.");
+                break;
+//            case "Random":
+//                HashMap<Integer, Title> titleData = new HashMap<Integer, Title>(this.db.jdbc.queryForMap("SELECT * FROM titles", Title.resultSetMapper));
+//                this.titlelist = titleData;
+//                SmartFoxServer.log.info("Random Feature retrieved.");
+//                break;
+            default:
+                if (type.equals("all")) {
+                    this.retrieveDatabaseObject("item");
+                    this.retrieveDatabaseObject("skillauras");
+                    this.retrieveDatabaseObject("class");
+                    this.retrieveDatabaseObject("map");
+                    this.retrieveDatabaseObject("rep");
+                    this.retrieveDatabaseObject("hair");
+                    this.retrieveDatabaseObject("wheel");
+                    this.retrieveDatabaseObject("quest");
+                    this.retrieveDatabaseObject("shop");
+                    this.retrieveDatabaseObject("enhshop");
+                    this.retrieveDatabaseObject("settings");
+//                    this.retrieveDatabaseObject("specialitem");
+                } else if (type.equals("pro")) {
+                    this.retrieveDatabaseObject("item");
+                    this.retrieveDatabaseObject("skillauras");
+                    this.retrieveDatabaseObject("class");
+                    this.retrieveDatabaseObject("map");
+                    this.retrieveDatabaseObject("rep");
+                    this.retrieveDatabaseObject("hair");
+                    this.retrieveDatabaseObject("wheel");
+                    this.retrieveDatabaseObject("quest");
+                    this.retrieveDatabaseObject("shop");
+                    this.retrieveDatabaseObject("enhshop");
+                    this.retrieveDatabaseObject("settings");
+                    this.retrieveDatabaseObject("specialitem");
+//                    this.retrieveDatabaseObject("Random");
+                    this.retrieveDatabaseObject("worldboss");
+                } else {
+                    throw new IllegalArgumentException("TEST TIPE TIDAK DITEMUKAN");
+                }
+        }
         return true;
     }
 
@@ -547,6 +598,22 @@ public class World {
         umsg.put("cmd", "umsg");
         umsg.put("s", message);
         this.send(umsg, this.zone.getChannelList());
+    }
+    public void sendNotification(String message, User user) {
+        JSONObject umsg = new JSONObject();
+        umsg.put("cmd", "popupmsg");
+        umsg.put("strMsg", message);
+        umsg.put("strGlow", "green,medium");
+        this.send(umsg, user);
+    }
+
+    public void applyEffect(String effect, User user) {
+        JSONObject aInfo = new JSONObject();
+        aInfo.put("cInf", "p:" + user.getUserId());
+        aInfo.put("cmd", "aura+");
+        aInfo.put("auras", "[{\"nam\":\"+" + effect + "\",\"t\":\"s\",\"dur\":\"1\",\"isNew\":true}]");
+        aInfo.put("tInf", "p:" + user.getUserId());
+        this.send(aInfo, user);
     }
 
     public void sendToUsers(JSONObject params) {

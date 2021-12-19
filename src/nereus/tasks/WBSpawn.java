@@ -38,7 +38,6 @@ public class WBSpawn implements Runnable {
     public WBSpawn(World world) {
         this.world = world;
         Iterator var2 = world.worldbosses.entrySet().iterator();
-
         while(var2.hasNext()) {
             Entry<Integer, WorldBoss> entry = (Entry)var2.next();
             this.deathTimes.put(((WorldBoss)entry.getValue()).monsterId, System.currentTimeMillis());

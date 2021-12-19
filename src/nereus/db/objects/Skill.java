@@ -1,44 +1,35 @@
+//
+// Source code recreated from a .class file by IntelliJ IDEA
+// (powered by Fernflower decompiler)
+//
+
 package nereus.db.objects;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.AbstractMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.AbstractMap.SimpleEntry;
 
+import com.google.common.collect.Multimap;
+import jdbchelper.BeanCreator;
 import jdbchelper.ResultSetMapper;
 
 public class Skill {
-    private String name;
-    private String animation;
-    private String description;
-    private String icon;
-    private String dsrc;
-    private String reference;
-    private String target;
-    private String effects;
-    private String type;
-    private String strl;
-    private double damage,hpregen;
-    private int id;
-    private int mana;
-    private int range;
-    private int hitTargets;
-    private int cooldown, auraId;
-    public Map<Integer, Integer> auras;
+    private String name,animation,description,icon,dsrc,reference,target,effects,type,strl;
+    private double damage,hpregen,lifesteal;
+    private int id,itemid,mana,range,hitTargets,cooldown,aurarandom;
+    public Multimap<Integer, SkillAuras> auraskill;
 
     public static final ResultSetMapper<Integer, Integer> auraMapper = new ResultSetMapper() {
-        public AbstractMap.SimpleEntry<Integer, Integer> mapRow(ResultSet rs) throws SQLException {
-            return new AbstractMap.SimpleEntry(rs.getInt("AuraID"), rs.getInt("SkillID"));
+        public SimpleEntry<Integer, Integer> mapRow(ResultSet rs) throws SQLException {
+            return new SimpleEntry(rs.getInt("AuraID"), rs.getInt("SkillID"));
         }
     };
-
     public static final ResultSetMapper<Integer, Skill> resultSetMapper = new ResultSetMapper() {
-        public AbstractMap.SimpleEntry<Integer, Skill> mapRow(ResultSet rs)
-                throws SQLException {
+        public SimpleEntry<Integer, Skill> mapRow(ResultSet rs) throws SQLException {
             Skill skill = new Skill();
-
             skill.id = rs.getInt("id");
-
             skill.name = rs.getString("Name");
             skill.animation = rs.getString("Animation");
             skill.description = rs.getString("Description");
@@ -49,32 +40,20 @@ public class Skill {
             skill.effects = rs.getString("Effects");
             skill.type = rs.getString("Type");
             skill.strl = rs.getString("Strl");
-
             skill.damage = rs.getDouble("Damage");
-
+            skill.lifesteal = rs.getDouble("LifeSteal");
             skill.mana = rs.getInt("Mana");
             skill.range = rs.getInt("Range");
             skill.hitTargets = rs.getInt("HitTargets");
             skill.cooldown = rs.getInt("Cooldown");
-            skill.auraId = rs.getInt("AuraID");
-
+            skill.aurarandom = rs.getInt("AuraRandom");
             skill.hpregen = rs.getInt("HealthRegeneration");
-
-
-            return new AbstractMap.SimpleEntry(Integer.valueOf(skill.id), skill);
+            skill.itemid = rs.getInt("ItemID");
+            return new SimpleEntry(skill.id, skill);
         }
     };
 
-    public boolean hasAuraId() {
-        return auraId > 0;
-    }
-
-    public int getAuraId() {
-        return auraId;
-    }
-
-    public boolean hasAura() {
-        return !this.auras.isEmpty();
+    public Skill() {
     }
 
     public String getName() {
@@ -125,7 +104,6 @@ public class Skill {
         return this.hpregen;
     }
 
-
     public int getMana() {
         return this.mana;
     }
@@ -142,11 +120,18 @@ public class Skill {
         return this.cooldown;
     }
 
-    public Map getAura() {
-        return this.auras;
-    }
-
     public int getId() {
         return this.id;
+    }
+
+    public int getItemid() {
+        return this.itemid;
+    }
+
+    public boolean isAuraRandom() {
+        return this.aurarandom > 0;
+    }
+    public double getLifeSteal() {
+        return this.lifesteal;
     }
 }

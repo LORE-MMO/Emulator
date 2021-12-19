@@ -1,24 +1,28 @@
+
 package nereus.requests;
 
 import nereus.ai.MonsterAI;
 import nereus.aqw.Rank;
+import nereus.config.ConfigData;
 import nereus.db.objects.*;
+import nereus.discord.Webhook;
 import nereus.dispatcher.IRequest;
 import nereus.dispatcher.RequestException;
 import nereus.tasks.DamageOverTime;
 import nereus.tasks.RemoveAura;
 import nereus.world.World;
+import nereus.world.Users;
 import nereus.world.stats.Stats;
+import com.google.common.collect.HashMultimap;
+import it.gotoandplay.smartfoxserver.SmartFoxServer;
 import it.gotoandplay.smartfoxserver.data.Room;
 import it.gotoandplay.smartfoxserver.data.User;
 import it.gotoandplay.smartfoxserver.extensions.ExtensionHelper;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
+
+import java.awt.*;
+import java.io.IOException;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import jdbchelper.NoResultException;
@@ -27,13 +31,15 @@ import net.sf.json.JSONObject;
 
 public class Action implements IRequest {
    private static final Random rand = new Random();
+   public Set<Aura> auraskill = new LinkedHashSet();
+   private int LifeSteal;
+
 
    public Action() {
-      super();
    }
 
    public void process(String[] params, User user, World world, Room room) throws RequestException {
-      if(((Integer)user.properties.get("state")).intValue() != 0) {
+      if ((Integer)user.properties.get("state") != 0) {
          int actId = Integer.parseInt(params[0]);
          String skillReference = this.getSkillRefence(params[1]);
          String tInf = this.parseTargetInfo(params[1]);
@@ -57,70 +63,71 @@ public class Action implements IRequest {
          int manaIncrease;
          try {
             skill = (Skill)world.skills.get(skills.get(skillReference));
-            if(skill == null) {
+            if (skill == null) {
                return;
             }
 
-            userMana = Rank.getRankFromPoints(((Integer)user.properties.get("cp")).intValue());
-            if(userMana < 2 && skill.getReference().equals("a2") || userMana < 3 && skill.getReference().equals("a3") || userMana < 5 && skill.getReference().equals("a4")) {
+            userMana = Rank.getRankFromPoints((Integer)user.properties.get("cp"));
+            if (userMana < 2 && skill.getReference().equals("a2") || userMana < 3 && skill.getReference().equals("a3") || userMana < 5 && skill.getReference().equals("a4")) {
                world.users.log(user, "Packet Edit [Action]", "Using a skill when designated rank is not yet achieved.");
                return;
             }
 
-            if(skill.getReference().equals("i1")) {
-               manaIncrease = world.db.jdbc.queryForInt("SELECT id FROM items WHERE Meta = ?", new Object[]{Integer.valueOf(skill.getId())});
-               if(!world.users.turnInItem(user, manaIncrease, 1)) {
+            if (skill.getReference().equals("i1")) {
+               manaIncrease = world.db.jdbc.queryForInt("SELECT id FROM items WHERE Meta = ?", new Object[]{skill.getId()});
+               if (!world.users.turnInItem(user, manaIncrease, 1)) {
                   world.users.log(user, "Packet Edit [Action]", "TurnIn failed when using potions.");
                   return;
                }
             }
 
-            if(user.properties.get("perfecttimings") != null && !skill.getReference().equals("aa")) {
-               Long var52 = Long.valueOf(System.currentTimeMillis());
-               Long maxMana = Long.valueOf(((Long)user.properties.get("perfecttimings")).longValue() + (long)skill.getCooldown() - (long)(skill.getCooldown() / 2) - 500L);
-               Integer targets = (Integer)user.properties.get("requestbotcounter");
-               if(targets == null) {
-                  user.properties.put("requestbotcounter", Integer.valueOf(0));
-               } else if(maxMana.longValue() > var52.longValue()) {
-                  user.properties.put("requestbotcounter", Integer.valueOf(0));
-               } else if(targets.intValue() >= 5) {
-                  //world.sendServerMessage(user.getName() + " is suspected of botting thus kicked by the server!");
-                  //world.users.kick(user);
-               } else {
-                  user.properties.put("requestbotcounter", Integer.valueOf(targets.intValue() + 1));
-               }
-            }
+//            if (user.properties.get("perfecttimings") != null && !skill.getReference().equals("aa")) {
+//               Long var52 = System.currentTimeMillis();
+//               Long maxMana = (Long)user.properties.get("perfecttimings") + (long)skill.getCooldown() - (long)(skill.getCooldown() / 2) - 500L;
+//               Integer targets = (Integer)user.properties.get("requestbotcounter");
+//               if (targets == null) {
+//                  user.properties.put("requestbotcounter", 0);
+//               } else if (maxMana > var52) {
+//                  user.properties.put("requestbotcounter", 0);
+//               } else {
+//                  user.properties.put("requestbotcounter", targets + 1);
+//               }
+//            }
 
-            if(user.properties.get(skill.getReference()) != null) {
+            if (user.properties.get(skill.getReference()) != null) {
                long var53 = System.currentTimeMillis();
-               long var55 = ((Long)user.properties.get(skill.getReference())).longValue() + (long)skill.getCooldown() - (long)(skill.getCooldown() / 2) - 500L;
-               int inputSet = ((Integer)user.properties.get("requestwarncounter")).intValue();
-               if(var55 > var53) {
-                  world.send(new String[]{"warning", "Action taken too quickly, try again in a moment."}, user);
+               long var55 = (Long)user.properties.get(skill.getReference()) + (long)skill.getCooldown() - (long)(skill.getCooldown() / 2) - 500L;
+               int inputSet = (Integer)user.properties.get("requestwarncounter");
+               if (var55 > var53) {
+                  if (user.properties.get("language").equals("BR")) {
+                     world.send(new String[]{"warning", "Medidas tomadas muito rapidamente, tente novamente em um momento."}, user);
+                  } else {
+                     world.send(new String[]{"warning", "Action taken too quickly, try again in a moment."}, user);
+                     world.users.log(user, "Packet Edit [gar]", "Attack packet hack.");
+                  }
 
-                  user.properties.put("requestwarncounter", Integer.valueOf(inputSet + 1));
+                  user.properties.put("requestwarncounter", inputSet + 1);
                   return;
                }
 
-               user.properties.put("requestwarncounter", Integer.valueOf(0));
+               user.properties.put("requestwarncounter", 0);
             }
-         } catch (NoResultException var51) {
+         } catch (NoResultException var57) {
             throw new UnsupportedOperationException("Unassigned skill ID: " + skillReference);
          }
 
-         userMana = ((Integer)user.properties.get("mp")).intValue() - skill.getMana();
+         userMana = (Integer)user.properties.get("mp") - skill.getMana();
          manaIncrease = (int)(stats.get_INT() + stats.get_INT() / 2.0D);
          userMana += rand.nextInt(Math.abs(manaIncrease));
-         int var54 = ((Integer)user.properties.get("mpmax")).intValue();
-         userMana = userMana >= var54?var54:userMana;
-         user.properties.put("mp", Integer.valueOf(userMana));
+         int var54 = (Integer)user.properties.get("mpmax");
+         userMana = userMana >= var54 ? var54 : userMana;
+         user.properties.put("mp", userMana);
          String[] var56 = tInf.split(",");
          List inputList = Arrays.asList(var56);
          HashSet var57 = new HashSet(inputList);
-         if(var57.size() < inputList.size()) {
-            world.db.jdbc.run("UPDATE users SET Access = 0, PermamuteFlag = 1 WHERE id = ?", new Object[]{user.properties.get("dbId")});
-            world.users.kick(user);
-            world.users.log(user, "Packet Edit [gar]", "Attack packet hack.");
+         if (var57.size() < inputList.size()) {
+            //world.users.kick(user);
+            //world.users.log(user, "Packet Edit [gar]", "Attack packet hack.");
          }
 
          ConcurrentHashMap monsters = (ConcurrentHashMap)room.properties.get("monsters");
@@ -132,109 +139,64 @@ public class Action implements IRequest {
             String tgtType = target.split(":")[0];
             int tgtId = Integer.parseInt(target.split(":")[1]);
             int damage = this.getRandomDamage(stats, skill);
+            int LifeSteal = (int) ((double) damage * skill.getLifeSteal());
             boolean dodge = false;
             boolean crit = Math.random() < stats.get$tcr();
-            boolean miss = damage > 0?Math.random() > 1.0D - ((Double)world.coreValues.get("baseMiss")).doubleValue() + stats.get$thi():false;
+            boolean miss = damage > 0 ? Math.random() > 1.0D - (Double)world.coreValues.get("baseMiss") + stats.get$thi() : false;
             Set userAuras = (Set)user.properties.get("auras");
             Iterator tgtInfo = userAuras.iterator();
-
             while(tgtInfo.hasNext()) {
                RemoveAura damageResult = (RemoveAura)tgtInfo.next();
                Aura userStats = damageResult.getAura();
-               if(!userStats.getCategory().equals("d")) {
-                  damage = (int)((double)damage * (1.0D + userStats.getDamageIncrease()));
+               if (!userStats.getCategory().equals("d")) {
+                  damage = (int)((double)damage * (1.0D  +userStats.getDamageIncrease()));
                }
             }
 
-            damage = (int)(miss?0.0D:(crit?(double)damage * 1.5D:(double)damage));
-            if(damage > 0 && !skill.getReference().equals("i1") && user.getUserId() != tgtId) {
-               user.properties.put("state", Integer.valueOf(2));
+            damage = (int)(miss ? 0.0D : (crit ? (double)damage * stats.get$scm() : (double)damage));
+            if (damage > 0 && !skill.getReference().equals("i1") && user.getUserId() != tgtId) {
+               user.properties.put("state", 2);
             }
 
             JSONObject var58 = new JSONObject();
             int mainPlayer;
-            if(tgtType.equals("m")) {
-               MonsterAI var59 = (MonsterAI)monsters.get(Integer.valueOf(tgtId));
-               if(var59 == null) {
+
+            if (tgtType.equals("m")) {
+               MonsterAI var59 = (MonsterAI)monsters.get(tgtId);
+               if (var59 == null) {
                   continue;
                }
-
-               Item var62 = (Item)user.properties.get("weaponitem");
-               String userItem = ((Monster)world.monsters.get(Integer.valueOf(var59.getMonsterId()))).getElement();
-               byte element = -1;
-               switch(userItem.hashCode()) {
-               case -1604554070:
-                  if(userItem.equals("Lightning")) {
-                     element = 5;
-                  }
-                  break;
-               case 2122646:
-                  if(userItem.equals("Dark")) {
-                     element = 3;
-                  }
-                  break;
-               case 2189910:
-                  if(userItem.equals("Fire")) {
-                     element = 0;
-                  }
-                  break;
-               case 2696232:
-                  if(userItem.equals("Wind")) {
-                     element = 4;
-                  }
-                  break;
-               case 73417974:
-                  if(userItem.equals("Light")) {
-                     element = 2;
-                  }
-                  break;
-               case 83350775:
-                  if(userItem.equals("Water")) {
-                     element = 1;
-                  }
-               }
-
-               switch(element) {
-               case 0:
-                  if(var62.getElement().equals("Water")) {
-                     damage += (int)((double)damage * 0.1D);
-                  }
-                  break;
-               case 1:
-                  if(var62.getElement().equals("Fire")) {
-                     damage += (int)((double)damage * 0.1D);
-                  }
-                  break;
-               case 2:
-                  if(var62.getElement().equals("Dark")) {
-                     damage += (int)((double)damage * 0.1D);
-                  }
-                  break;
-               case 3:
-                  if(var62.getElement().equals("Light")) {
-                     damage += (int)((double)damage * 0.1D);
-                  }
-                  break;
-               case 4:
-                  if(var62.getElement().equals("Lightning")) {
-                     damage += (int)((double)damage * 0.1D);
-                  }
-                  break;
-               case 5:
-                  if(var62.getElement().equals("Wind")) {
-                     damage += (int)((double)damage * 0.1D);
-                  }
-               }
-
                Set tgtUserItem = var59.getAuras();
                Iterator var72 = tgtUserItem.iterator();
 
                while(var72.hasNext()) {
                   RemoveAura userTgtHp = (RemoveAura)var72.next();
                   Aura tgtList = userTgtHp.getAura();
-                  if(!tgtList.getCategory().equals("d")) {
-                     damage = (int)((double)damage * (1.0D + tgtList.getDamageIncrease()));
+                  if (!tgtList.getCategory().equals("d")) {
+                     if (tgtList.canStack()) {
+                        damage = (int)((double)damage * (1.0D + tgtList.getDamageIncrease() * (double)userTgtHp.getAuraCount()));
+                     } else {
+                        damage = (int)((double)damage * (1.0D + tgtList.getDamageIncrease()));
+                     }
                   }
+               }
+
+               Iterator userEquipments = ((JSONObject) user.properties.get(Users.EQUIPMENT)).values().iterator();
+               while (userEquipments.hasNext()) {
+                  Item item = world.items.get(((JSONObject) userEquipments.next()).getInt("ItemID"));
+                  if (item.passives.iterator().hasNext()) {
+                     double increase = 1.0 + item.passives.iterator().next().getDamageincrease();
+                     damage *= increase > 0 ? increase : 0;
+                  }
+               }
+
+               //END ITEM BUFFED
+
+               //MONSTER REDUCTION DAMAGE
+               MonsterAI testai = (MonsterAI)monsters.get(tgtId);
+               Monster moni = (Monster)world.monsters.get(testai.monsterId);
+               if (moni.getDamageReduction() >= 0){
+                  damage = (int) ((double) damage * (1.0D - moni.getDamageReduction()));
                }
 
                var59.setHealth(var59.getHealth() - damage);
@@ -242,7 +204,8 @@ public class Action implements IRequest {
                Set var74 = var59.getTargets();
                Monster mon1 = (Monster)world.monsters.get(var59.monsterId);
 
-               if(var59.getHealth() <= 0 && var59.getState() != 0) {
+               int aid;
+               if (var59.getHealth() <= 0 && var59.getState() != 0) {
                   var59.die();
                   if (world.worldbosses.containsKey(mon1.getId())) {
                      world.wbSpawn.deathTimes.put(mon1.getId(), System.currentTimeMillis());
@@ -254,27 +217,49 @@ public class Action implements IRequest {
                      world.sendServerMessage("Congratulations! "+ user.getName() +" has dealt the most damage to the World Boss "+ mon1.getName() +".");
                      world.db.jdbc.run("UPDATE monsters_bosses SET Deaths = Deaths + 1 WHERE MonsterID = ?", new Object[]{mon1.getId()});
                      world.db.jdbc.run("UPDATE monsters_bosses SET DeathTime = NOW() WHERE MonsterID = ?", new Object[]{mon1.getId()});
+                     Webhook.EmbedObject embed = new Webhook.EmbedObject();
+                     embed.setTitle("**" + mon1.getName() + "** is defeated.");
+                     embed.setDescription("Congratulations! "+ user.properties.get(Users.USERNAME) +"has dealt the most damage to the World Boss "+ mon1.getName() +".");
+                     embed.setColor(Color.YELLOW);
+                     embed.setUrl("https://nereus.world/Wiki/monster/info/");
+
 
                   }
 
-                  if(area.isPvP()) {
-                     world.rooms.relayPvPEvent(var59, ((Integer)user.properties.get("pvpteam")).intValue());
+                  if (area.isPvP()) {
+                     world.rooms.relayPvPEvent(var59, (Integer)user.properties.get("pvpteam"));
                      ct.put("pvp", world.rooms.getPvPResult(room));
                   }
-               } else if(var59.getState() == 0) {
+               } else if (var59.getState() == 0) {
                   a.clear();
-               } else if(var59.getState() != 2) {
+               } else if (var59.getState() != 2) {
                   var59.setAttacking(world.scheduleTask(var59, 2500L, TimeUnit.MILLISECONDS, true));
                }
 
-               if (skill.hasAura()) {
-                  Iterator i$2 = skill.auras.entrySet().iterator();
+               if (!miss || !dodge) {
+                  Skill iniaura = world.skills.get(skills.get(skillReference));
+                  Iterator aurasefek = iniaura.auraskill.entries().iterator();
+                  HashMultimap auraresult = HashMultimap.create();
 
-                  while(i$2.hasNext()) {
-                     Map.Entry<Integer, Integer> entry = (Map.Entry)i$2.next();
-                     Aura aura = world.auras.get(Integer.valueOf(entry.getKey()));
-                     if(!miss) {
-                        auras.add(this.applyAura(world, var59, aura.getId(), fromTarget, damage));
+                  while(aurasefek.hasNext()){
+                     Map.Entry<Integer, SkillAuras> entry = (Map.Entry)aurasefek.next();
+                     SkillAuras iniaurainfo = (SkillAuras)entry.getValue();
+                     int skillid = iniaurainfo.skillid;
+                     int iniauraid = iniaurainfo.auraid;
+                     Aura auratest = world.auras.get(iniauraid);
+                     double chanceaura = auratest.getApplychance();
+                     auraresult.put(iniauraid, chanceaura);
+                     if (!skill.isAuraRandom() && !iniaura.auraskill.isEmpty() && Math.random() < chanceaura) {
+                        auras.add(this.applyAura(world, var59, iniauraid, fromTarget, damage));
+                     }
+                  }
+                  if (auraresult.size() > 0) {
+                     ArrayList keys1 = new ArrayList(auraresult.keySet());
+                     int aid1 = (Integer)keys1.get(rand.nextInt(keys1.size()));
+                     Object[] rate1 = auraresult.get(aid1).toArray();
+                     Double rateValue = (Double)rate1[rand.nextInt(rate1.length)];
+                     if (skill.isAuraRandom() && aid1 > 0 && Math.random() < rateValue) {
+                        auras.add(this.applyAura(world, var59, aid1, fromTarget, damage));
                      }
                   }
                }
@@ -305,6 +290,7 @@ public class Action implements IRequest {
                      int stealprecent = (int) (skill.getHpregen() * skill.getHitTargets() * 100000);
                      int hp = (Integer)user.properties.get("hp");
                      hp += rand.nextInt(stealprecent);
+                     SmartFoxServer.log.warning("steal : " + rand.nextInt(stealprecent));
                   }
                }
 
@@ -321,191 +307,129 @@ public class Action implements IRequest {
                m.put(String.valueOf(tgtId), var58);
             }
 
-            if(tgtType.equals("p")) {
+            if (tgtType.equals("p")) {
                User var60 = ExtensionHelper.instance().getUserById(tgtId);
-               if(var60 == null || ((Integer)var60.properties.get("state")).intValue() == 0) {
+               if (var60 == null || (Integer)var60.properties.get("state") == 0) {
                   continue;
                }
 
                Stats var63 = (Stats)var60.properties.get("stats");
                dodge = Math.random() < var63.get$tdo();
-               if(!user.equals(var60)) {
+               if (!user.equals(var60)) {
                   Set var64 = (Set)var60.properties.get("auras");
                   Iterator var66 = var64.iterator();
 
                   while(var66.hasNext()) {
                      RemoveAura var75 = (RemoveAura)var66.next();
-                     Aura var69 = var75.getAura();
-                     if(!var69.getCategory().equals("d")) {
-                        damage = (int)((double)damage * (1.0D + var69.getDamageIncrease()));
+                     Aura aura = var75.getAura();
+                     if (!aura.getCategory().equals("d")) {
+                        if (aura.canStack()) {
+                           damage = (int)((double)damage * (1.0D + aura.getDamageIncrease() * (double)var75.getAuraCount()));
+                        } else {
+                           damage = (int)((double)damage * (1.0D + aura.getDamageIncrease()));
+                        }
                      }
                   }
                }
 
-               if(damage > 0) {
-                  if(dodge) {
+               if (damage > 0 && !user.equals(var60)) {
+                  if (dodge) {
                      damage = 0;
                   }
 
-                  if(!area.isPvP()) {
-                     throw new RequestException("Can\'t attack in a non-pvp area.");
-                  }
-
-                  if(user.properties.get("pvpteam") == var60.properties.get("pvpteam")) {
+                  if (area.isPvP() && user.properties.get("pvpteam") == var60.properties.get("pvpteam")) {
                      return;
                   }
 
-                  var60.properties.put("state", Integer.valueOf(2));
+                  var60.properties.put("state", 2);
                }
-
-               damage /= 5;
-               Item var65 = (Item)user.properties.get("weaponitem");
-               Item var67 = (Item)var60.properties.get("weaponitem");
-               String var77 = (String)var60.properties.get("none");
-               byte var73 = -1;
-               switch(var77.hashCode()) {
-               case -1604554070:
-                  if(var77.equals("Lightning")) {
-                     var73 = 5;
-                  }
-                  break;
-               case 2122646:
-                  if(var77.equals("Dark")) {
-                     var73 = 3;
-                  }
-                  break;
-               case 2189910:
-                  if(var77.equals("Fire")) {
-                     var73 = 0;
-                  }
-                  break;
-               case 2696232:
-                  if(var77.equals("Wind")) {
-                     var73 = 4;
-                  }
-                  break;
-               case 73417974:
-                  if(var77.equals("Light")) {
-                     var73 = 2;
-                  }
-                  break;
-               case 83350775:
-                  if(var77.equals("Water")) {
-                     var73 = 1;
-                  }
-               }
-
-               switch(var73) {
-               case 0:
-                  if(var65.getElement().equals("Water")) {
-                     damage += (int)((double)damage * 0.1D);
-                  } else if(var67.getElement().equals("Fire")) {
-                     damage -= (int)((double)damage * 0.2D);
-                  }
-                  break;
-               case 1:
-                  if(var65.getElement().equals("Fire")) {
-                     damage += (int)((double)damage * 0.1D);
-                  } else if(var67.getElement().equals("Water")) {
-                     damage -= (int)((double)damage * 0.2D);
-                  }
-                  break;
-               case 2:
-                  if(var65.getElement().equals("Dark")) {
-                     damage += (int)((double)damage * 0.1D);
-                  } else if(var67.getElement().equals("Light")) {
-                     damage -= (int)((double)damage * 0.2D);
-                  }
-                  break;
-               case 3:
-                  if(var65.getElement().equals("Light")) {
-                     damage += (int)((double)damage * 0.1D);
-                  } else if(var67.getElement().equals("Dark")) {
-                     damage -= (int)((double)damage * 0.2D);
-                  }
-                  break;
-               case 4:
-                  if(var65.getElement().equals("Lightning")) {
-                     damage += (int)((double)damage * 0.1D);
-                  } else if(var67.getElement().equals("Wind")) {
-                     damage -= (int)((double)damage * 0.2D);
-                  }
-                  break;
-               case 5:
-                  if(var65.getElement().equals("Wind")) {
-                     damage += (int)((double)damage * 0.1D);
-                  } else if(var67.getElement().equals("Lightning")) {
-                     damage -= (int)((double)damage * 0.2D);
-                  }
-               }
-
-               int var70 = ((Integer)var60.properties.get("hp")).intValue() - damage;
-               var70 = var70 <= 0?0:var70;
-               var70 = var70 >= ((Integer)var60.properties.get("hpmax")).intValue()?((Integer)var60.properties.get("hpmax")).intValue():var70;
-               var60.properties.put("hp", Integer.valueOf(var70));
-               if(var70 <= 0 && ((Integer)var60.properties.get("state")).intValue() != 0) {
+               damage = (int)((double)damage * (1.0D + 0.90));//decrease damage pvp
+               int var70 = (Integer)var60.properties.get("hp") - damage;
+               var70 = var70 <= 0 ? 0 : var70;
+               var70 = var70 >= (Integer)var60.properties.get("hpmax") ? (Integer)var60.properties.get("hpmax") : var70;
+               var60.properties.put("hp", var70);
+               int auraid;
+               if (var70 <= 0 && (Integer)var60.properties.get("state") != 0) {
                   JSONArray var80 = new JSONArray();
                   var80.add(user.getName());
                   var58.put("targets", var80);
                   world.users.die(var60);
-                  user.properties.put("state", Integer.valueOf(1));
+                  user.properties.put("state", 1);
                   world.db.jdbc.run("UPDATE users SET DeathCount = (DeathCount + 1)  WHERE id = ?", new Object[]{var60.properties.get("dbId")});
-                  int userBounty = world.db.jdbc.queryForInt("SELECT Bounty FROM users WHERE id = ?", new Object[]{var60.properties.get("dbId")});
-                  world.db.jdbc.run("UPDATE users SET Gold = (Gold + "+userBounty+") WHERE id = ?", new Object[]{user.properties.get("dbId")});
-                  int userGold = world.db.jdbc.queryForInt("SELECT Gold FROM users WHERE id = ?", new Object[]{user.properties.get("dbId")});
+                  world.db.jdbc.run("UPDATE users SET Gold = (Gold + " + 1000 + ") WHERE id = ?", new Object[]{user.properties.get("dbId")});
+                  auraid = world.db.jdbc.queryForInt("SELECT Gold FROM users WHERE id = ?", new Object[]{user.properties.get("dbId")});
                   JSONObject guildhall = new JSONObject();
                   guildhall.put("cmd", "addGoldExp");
-                  guildhall.put("intGold", Integer.valueOf(userBounty));
-                  guildhall.put("bitSuccess", Integer.valueOf(1));
+                  guildhall.put("intGold", 1000);
+                  guildhall.put("bitSuccess", 1);
                   world.send(guildhall, user);
-                  world.send(new String[]{"moderator", "You have claimed the bounty of "+userBounty+" gold from the user "+var60.getName()+"!"}, user);
                   world.send(new String[]{"moderator", "10,000 gold has been added to your bounty!"}, user);
-                  world.db.jdbc.run("UPDATE users SET Bounty=0  WHERE id = ?", new Object[]{var60.properties.get("dbId")});
                   world.db.jdbc.run("UPDATE users SET KillCount = (KillCount + 1) WHERE id = ?", new Object[]{user.properties.get("dbId")});
-                  world.db.jdbc.run("UPDATE users SET Bounty = (Bounty + 10000) WHERE id = ?", new Object[]{user.properties.get("dbId")});
-                  if(area.isPvP()) {
+                  world.db.jdbc.run("UPDATE users SET Gold = (Gold + 10000) WHERE id = ?", new Object[]{user.properties.get("dbId")});
+//                  world.users.dropItem(user, 222156, 1);
+                  if (area.isPvP()) {
                      Iterator var76 = area.items.iterator();
 
                      int var79;
                      while(var76.hasNext()) {
-                        var79 = ((Integer)var76.next()).intValue();
+                        var79 = (Integer)var76.next();
                         world.users.dropItem(user, var79);
                      }
 
-                     if(room.getName().split("-")[0].equals("guildwars")) {
+                     if (room.getName().split("-")[0].equals("guildwars")) {
                         world.db.jdbc.run("UPDATE guilds SET TotalKills = (TotalKills + 1) WHERE id = ?", new Object[]{user.properties.get("guildid")});
                         world.db.jdbc.run("UPDATE guilds SET Exp = (Exp + 100) WHERE id = ?", new Object[]{user.properties.get("guildid")});
-                        JSONObject var78 = world.users.getGuildObject(((Integer)user.properties.get("guildid")).intValue());
+                        JSONObject var78 = world.users.getGuildObject((Integer)user.properties.get("guildid"));
                         var79 = world.db.jdbc.queryForInt("SELECT Exp FROM guilds WHERE id = ?", new Object[]{user.properties.get("guildid")});
-                        int var81 = world.db.jdbc.queryForInt("SELECT TotalKills FROM guilds WHERE id = ?", new Object[]{user.properties.get("guildid")});
-                        var78.put("TotalKills", Integer.valueOf(var81 + 1));
+                        mainPlayer = world.db.jdbc.queryForInt("SELECT TotalKills FROM guilds WHERE id = ?", new Object[]{user.properties.get("guildid")});
+                        var78.put("TotalKills", mainPlayer + 1);
                         world.sendGuildUpdate(var78);
-                        if(var79 >= world.getGuildExpToLevel(((Integer)var78.get("Level")).intValue())) {
-                           world.users.guildLevelUp((Integer)user.properties.get("guildid"), ((Integer)var78.get("Level")).intValue() + 1);
+                        if (var79 >= world.getGuildExpToLevel((Integer)var78.get("Level"))) {
+                           world.users.guildLevelUp((Integer)user.properties.get("guildid"), (Integer)var78.get("Level") + 1);
                         } else {
-                           var78.put("Exp", Integer.valueOf(var79 + 100));
+                           var78.put("Exp", var79 + 100);
                            world.sendGuildUpdate(var78);
                         }
                      }
 
-                     if(room.getName().split("-")[0].equals("deadlock")) {
-                        world.rooms.addPvPScore(room, 1000, ((Integer)user.properties.get("pvpteam")).intValue());
+                     if (room.getName().split("-")[0].equals("deadlock")) {
+                        world.rooms.addPvPScore(room, 1000, (Integer)user.properties.get("pvpteam"));
                      } else {
-                        world.rooms.addPvPScore(room, ((Integer)var60.properties.get("level")).intValue(), ((Integer)user.properties.get("pvpteam")).intValue());
+                        world.rooms.addPvPScore(room, (Integer)var60.properties.get("level"), (Integer)user.properties.get("pvpteam"));
                      }
 
                      ct.put("pvp", world.rooms.getPvPResult(room));
                   }
                }
 
-               if (skill.hasAura()) {
-                  Iterator i$2 = skill.auras.entrySet().iterator();
 
-                  while (i$2.hasNext()) {
-                     Map.Entry<Integer, Integer> entry = (Map.Entry) i$2.next();
-                     Aura aura = world.auras.get(Integer.valueOf(entry.getKey()));
-                     if (!miss || !dodge || !skill.getReference().equals("i1")) {
-                        auras.add(this.applyAura(world, var60, aura.getId(), fromTarget, damage));
+               if (!miss || !dodge || !skill.getReference().equals("i1")) {
+
+                  Skill iniaura = world.skills.get(skills.get(skillReference));
+                  Iterator aurasefek = iniaura.auraskill.entries().iterator();
+                  HashMultimap auraresult = HashMultimap.create();
+
+
+
+                  while(aurasefek.hasNext()){
+                     Map.Entry<Integer, SkillAuras> entry = (Map.Entry)aurasefek.next();
+                     SkillAuras iniaurainfo = (SkillAuras)entry.getValue();
+                     int skillid = iniaurainfo.skillid;
+                     int iniauraid = iniaurainfo.auraid;
+                     Aura auratest = world.auras.get(iniauraid);
+                     double chanceaura = auratest.getApplychance();
+                     auraresult.put(iniauraid, chanceaura);
+                     if (!skill.isAuraRandom() && !iniaura.auraskill.isEmpty() && Math.random() < chanceaura) {
+                        auras.add(this.applyAura(world, var60, iniauraid, fromTarget, damage));
+                     }
+                  }
+                  if (auraresult.size() > 0) {
+                     ArrayList keys1 = new ArrayList(auraresult.keySet());
+                     int aid = (Integer)keys1.get(rand.nextInt(keys1.size()));
+                     Object[] rate1 = auraresult.get(aid).toArray();
+                     Double rateValue = (Double)rate1[rand.nextInt(rate1.length)];
+                     if (skill.isAuraRandom() && aid > 0 && Math.random() < rateValue) {
+                        auras.add(this.applyAura(world, var60, aid, fromTarget, damage));
                      }
                   }
                }
@@ -514,7 +438,7 @@ public class Action implements IRequest {
                var58.put("intHP", var60.properties.get("hp"));
                var58.put("intMP", var60.properties.get("mp"));
                p.put(var60.getName(), var58);
-               if(!p.containsKey(user.getName())) {
+               if (!p.containsKey(user.getName())) {
                   var58.clear();
                   var58.put("intMP", user.properties.get("mp"));
                   var58.put("intState", (Integer)user.properties.get("state"));
@@ -522,14 +446,34 @@ public class Action implements IRequest {
                }
             }
 
+
+            if(skill.getLifeSteal() > 0.00) {
+               JSONObject lifesteal = new JSONObject();
+               lifesteal.put("hp", Integer.valueOf(-LifeSteal));
+               lifesteal.put("tInf", "p:"+user.getUserId());
+               lifesteal.put("type", crit ? "crit" : "hit");
+               a.add(lifesteal);
+
+               User var60 = ExtensionHelper.instance().getUserById(user.getUserId());
+               int userHealth = ((Integer) user.properties.get(Users.HP)).intValue() + LifeSteal;
+               int userHealthMax = ((Integer) user.properties.get(Users.HP_MAX)).intValue();
+               userHealth = userHealth >= userHealthMax ? userHealthMax : userHealth;
+               user.properties.put(Users.HP, Integer.valueOf(userHealth));
+               JSONObject ls = new JSONObject();
+               ls.put("intState", var60.properties.get(Users.STATE));
+               ls.put("intHP", user.properties.get(Users.HP));
+               ls.put("intMP", user.properties.get(Users.MP));
+               p.put(user.getName(), ls);
+            }
+
             JSONObject var61 = new JSONObject();
-            var61.put("hp", Integer.valueOf(damage));
+            var61.put("hp", damage);
             var61.put("tInf", target);
-            var61.put("type", dodge?"dodge":(miss?"miss":(crit?"crit":"hit")));
+            var61.put("type", dodge ? "dodge" : (miss ? "miss" : (crit ? "crit" : "hit")));
             a.add(var61);
          }
 
-         if(((Integer)user.properties.get("state")).intValue() == 1) {
+         if ((Integer)user.properties.get("state") == 1) {
             world.users.regen(user);
          }
 
@@ -538,28 +482,27 @@ public class Action implements IRequest {
          anim.put("fx", skill.getEffects());
          anim.put("tInf", tInf);
          anim.put("animStr", skill.getAnimation());
-         if(!skill.getStrl().isEmpty()) {
+         if (!skill.getStrl().isEmpty()) {
             anim.put("strl", skill.getStrl());
          }
-
          anims.add(anim);
          sarsaObj.put("cInf", fromTarget);
          sarsaObj.put("a", a);
-         sarsaObj.put("actID", Integer.valueOf(actId));
-         sarsaObj.put("iRes", Integer.valueOf(1));
+         sarsaObj.put("actID", actId);
+         sarsaObj.put("iRes", 1);
          sarsa.add(sarsaObj);
-         if(!m.isEmpty()) {
+         if (!m.isEmpty()) {
             ct.put("m", m);
          }
 
-         if(!auras.isEmpty()) {
+         if (!auras.isEmpty()) {
             ct.put("a", auras);
          }
 
          ct.put("p", p);
          ct.put("cmd", "ct");
          ct.put("anims", anims);
-         if(area.isPvP()) {
+         if (area.isPvP()) {
             ct.put("sarsa", sarsa);
             world.sendToRoom(ct, user, room);
          } else {
@@ -568,26 +511,95 @@ public class Action implements IRequest {
             world.send(ct, user);
          }
 
-         user.properties.put(skill.getReference(), Long.valueOf(System.currentTimeMillis()));
-         user.properties.put("perfecttimings", Long.valueOf(System.currentTimeMillis()));
+         user.properties.put(skill.getReference(), System.currentTimeMillis());
+         user.properties.put("perfecttimings", System.currentTimeMillis());
       }
+
+   }
+
+   private RemoveAura renewAura(World world, MonsterAI ai, Aura aura, RemoveAura ra, String fromTarget, int damage) {
+      ra.cancel();
+      if (aura.eatsAura()) {
+         int auratoeat = aura.getAuraToEat();
+         if (ai.hasAura(auratoeat)) {
+            RemoveAura rau = ai.getAura(auratoeat);
+            rau.run();
+         }
+      }
+
+      if (aura.getCategory().equals("d")) {
+         DamageOverTime dot = ra.getDot();
+         dot.setStack(ra.getAuraCount());
+         dot.setMultiplier(aura.getDamageIncrease());
+         dot.setRunning(world.scheduleTask(dot, (long)aura.getDotinterval(), TimeUnit.SECONDS, true));
+         ra.setDot(dot);
+      }
+
+      ra.setRunning(world.scheduleTask(ra, (long)aura.getDuration(), TimeUnit.SECONDS));
+      return ra;
+   }
+
+   private RemoveAura stackAura(World world, MonsterAI ai, Aura aura, RemoveAura ra, String fromtTarget, int damage) {
+      ra.cancel();
+      ra.incrementAuraCount();
+      if (aura.eatsAura()) {
+         int auratoeat = aura.getAuraToEat();
+         if (ai.hasAura(auratoeat)) {
+            RemoveAura rau = ai.getAura(auratoeat);
+            rau.run();
+         }
+      }
+
+      if (aura.getCategory().equals("d")) {
+         DamageOverTime dot = ra.getDot();
+         dot.setStack(ra.getAuraCount());
+         dot.setMultiplier(aura.getDamageIncrease());
+         dot.setRunning(world.scheduleTask(dot, (long)aura.getDotinterval(), TimeUnit.SECONDS, true));
+         ra.setDot(dot);
+      }
+
+      ra.setRunning(world.scheduleTask(ra, (long)aura.getDuration(), TimeUnit.SECONDS));
+      return ra;
    }
 
    private JSONObject applyAura(World world, MonsterAI ai, int auraId, String fromTarget, int damage) {
       JSONObject aInfo = new JSONObject();
-      Aura aura = (Aura)world.auras.get(Integer.valueOf(auraId));
+      Aura aura = (Aura)world.auras.get(auraId);
       boolean auraExists = ai.hasAura(aura.getId());
       aInfo.put("cInf", fromTarget);
       aInfo.put("cmd", "aura+");
       aInfo.put("auras", aura.getAuraArray(!auraExists));
       aInfo.put("tInf", "m:" + ai.getMapId());
-      if(auraExists) {
+      RemoveAura ra;
+      if (auraExists) {
+         if (aura.canStack()) {
+            ra = ai.getAura(aura.getId());
+            ai.removeAura(ra);
+            if (ra.getAuraCount() < aura.getMaxStack()) {
+               ai.addAura(this.stackAura(world, ai, aura, ra, fromTarget, damage));
+            } else {
+               //stopdisaura stack
+            }
+         } else {
+            ra = ai.getAura(aura.getId());
+            ai.removeAura(ra);
+            ai.addAura(this.renewAura(world, ai, aura, ra, fromTarget, damage));
+         }
+
          return aInfo;
       } else {
-         RemoveAura ra = ai.applyAura(aura);
-         if(aura.getCategory().equals("d")) {
-            DamageOverTime dot = new DamageOverTime(world, ai, damage, fromTarget);
-            dot.setRunning(world.scheduleTask(dot, 2L, TimeUnit.SECONDS, true));
+         ra = ai.applyAura(aura);
+         if (aura.eatsAura()) {
+            int auratoeat = aura.getAuraToEat();
+            if (ai.hasAura(auratoeat)) {
+               RemoveAura rau = ai.getAura(auratoeat);
+               rau.run();
+            }
+         }
+
+         if (aura.getCategory().equals("d")) {
+            DamageOverTime dot = new DamageOverTime(world, ai, damage, fromTarget, aura.canStack());
+            dot.setRunning(world.scheduleTask(dot, (long)aura.getDotinterval(), TimeUnit.SECONDS, true));
             ra.setDot(dot);
          }
 
@@ -595,38 +607,94 @@ public class Action implements IRequest {
       }
    }
 
+   private RemoveAura renewAura(World world, User user, Aura aura, RemoveAura ra, String fromTarget, int damage) {
+      ra.cancel();
+      if (!aura.effects.isEmpty()) {
+         Stats dot = (Stats)user.properties.get("stats");
+         dot.applyAuraStackEffects(aura, ra.getAuraCount());
+      }
+
+      ra.setRunning(world.scheduleTask(ra, (long)aura.getDuration(), TimeUnit.SECONDS));
+      if (aura.getCategory().equals("d")) {
+         DamageOverTime dot1 = ra.getDot();
+         dot1.setStack(ra.getAuraCount());
+         dot1.setMultiplier(aura.getDamageIncrease());
+         dot1.setRunning(world.scheduleTask(dot1, 2L, TimeUnit.SECONDS, true));
+         ra.setDot(dot1);
+      }
+
+      return ra;
+   }
+
+   private RemoveAura stackAura(World world, User user, Aura aura, RemoveAura ra, String fromtTarget, int damage) {
+      ra.cancel();
+      ra.incrementAuraCount();
+      if (aura.eatsAura()) {
+         int auratoeat = aura.getAuraToEat();
+         if (world.users.hasAura(user, aura.getId())) {
+            RemoveAura rau = world.users.getAura(user, auratoeat);
+            rau.run();
+         }
+      }
+
+      if (!aura.effects.isEmpty()) {
+         Stats stats = (Stats)user.properties.get("stats");
+         stats.applyAuraStackEffects(aura, ra.getAuraCount());
+      }
+
+      ra.setRunning(world.scheduleTask(ra, (long)aura.getDuration(), TimeUnit.SECONDS));
+      if (aura.getCategory().equals("d")) {
+         DamageOverTime dot1 = ra.getDot();
+         dot1.setStack(ra.getAuraCount());
+         dot1.setMultiplier(aura.getDamageIncrease());
+         dot1.setRunning(world.scheduleTask(dot1, 2L, TimeUnit.SECONDS, true));
+         ra.setDot(dot1);
+      }
+
+      return ra;
+   }
+
    private JSONObject applyAura(World world, User user, int auraId, String fromTarget, int damage) {
       JSONObject aInfo = new JSONObject();
-      Aura aura = (Aura)world.auras.get(Integer.valueOf(auraId));
+      Aura aura = (Aura)world.auras.get(auraId);
       boolean auraExists = world.users.hasAura(user, aura.getId());
       aInfo.put("cInf", fromTarget);
       aInfo.put("cmd", "aura+");
       aInfo.put("auras", aura.getAuraArray(!auraExists));
       aInfo.put("tInf", "p:" + user.getUserId());
-      if(auraExists) {
-         return aInfo;
-      } else {
-         RemoveAura ra = world.users.applyAura(user, aura);
-         if(!aura.effects.isEmpty()) {
-            Stats dot = (Stats)user.properties.get("stats");
-            HashSet auraEffects = new HashSet();
-            Iterator i$ = aura.effects.iterator();
-
-            while(i$.hasNext()) {
-               int effectId = ((Integer)i$.next()).intValue();
-               AuraEffects ae = (AuraEffects)world.effects.get(Integer.valueOf(effectId));
-               dot.effects.add(ae);
-               auraEffects.add(ae);
+      RemoveAura ra;
+      if (auraExists) {
+         Set auras;
+         if (aura.canStack()) {
+            ra = world.users.getAura(user, auraId);
+            auras = (Set)user.properties.get("auras");
+            auras.remove(ra);
+            if (ra.getAuraCount() < aura.getMaxStack()) {
+               auras.add(this.stackAura(world, user, aura, ra, fromTarget, damage));
+            } else {
+               //stopdis aura stack
             }
-
-            dot.update();
-            dot.sendStatChanges(dot, auraEffects);
+         } else {
+            ra = world.users.getAura(user, auraId);
+            auras = (Set)user.properties.get("auras");
+            auras.remove(ra);
+            auras.add(this.renewAura(world, user, aura, ra, fromTarget, damage));
          }
 
-         if(aura.getCategory().equals("d")) {
-            DamageOverTime dot1 = new DamageOverTime(world, user, damage, fromTarget);
-            dot1.setRunning(world.scheduleTask(dot1, 2L, TimeUnit.SECONDS, true));
-            ra.setDot(dot1);
+         return aInfo;
+      } else {
+         ra = world.users.applyAura(user, aura);
+         if (!aura.effects.isEmpty()) {
+            Stats stats = (Stats)user.properties.get("stats");
+            stats.applyAuraStackEffects(aura, ra.getAuraCount());
+         }
+
+         if (aura.getCategory().equals("d")) {
+            DamageOverTime dot = new DamageOverTime(world, user, damage, fromTarget, aura.canStack());
+            dot.setMultiplier(aura.getDamageIncrease());
+            dot.setStack(1);
+            dot.setRunning(world.scheduleTask(dot, (long)aura.getDotinterval(), TimeUnit.SECONDS, true));
+            ra.setDot(dot);
          }
 
          return aInfo;
@@ -634,16 +702,16 @@ public class Action implements IRequest {
    }
 
    private String getSkillRefence(String str) {
-      return str.contains(",")?str.split(",")[0].split(">")[0]:str.split(">")[0];
+      return str.contains(",") ? str.split(",")[0].split(">")[0] : str.split(">")[0];
    }
 
    private String parseTargetInfo(String str) {
       StringBuilder tb = new StringBuilder();
-      if(str.contains(",")) {
+      if (str.contains(",")) {
          String[] multi = str.split(",");
 
          for(int i = 0; i < multi.length; ++i) {
-            if(i != 0) {
+            if (i != 0) {
                tb.append(",");
             }
 
@@ -654,6 +722,12 @@ public class Action implements IRequest {
       }
 
       return tb.toString();
+   }
+
+   private boolean getRandomBoolean(int chance) {
+      Random random = new Random();
+      int randInt = random.nextInt(chance);
+      return randInt == 0 || randInt == 1;
    }
 
    private int getRandomDamage(Stats stats, Skill skill) {

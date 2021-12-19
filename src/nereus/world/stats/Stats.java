@@ -1,14 +1,17 @@
+//
+// Source code recreated from a .class file by IntelliJ IDEA
+// (powered by Fernflower decompiler)
+//
+
 package nereus.world.stats;
 
-import nereus.db.objects.AuraEffects;
-import nereus.db.objects.Enhancement;
-import nereus.db.objects.Item;
-import nereus.db.objects.Skill;
+import nereus.db.objects.*;
+import nereus.world.Users;
 import nereus.world.World;
-import it.gotoandplay.smartfoxserver.SmartFoxServer;
 import it.gotoandplay.smartfoxserver.data.User;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -85,37 +88,36 @@ public class Stats {
    private World world;
 
    public Stats(User user, World world) {
-      super();
-      this.innate.put("STR", Double.valueOf(0.0D));
-      this.innate.put("END", Double.valueOf(0.0D));
-      this.innate.put("DEX", Double.valueOf(0.0D));
-      this.innate.put("INT", Double.valueOf(0.0D));
-      this.innate.put("WIS", Double.valueOf(0.0D));
-      this.innate.put("LCK", Double.valueOf(0.0D));
-      this.weapon.put("STR", Double.valueOf(0.0D));
-      this.weapon.put("END", Double.valueOf(0.0D));
-      this.weapon.put("DEX", Double.valueOf(0.0D));
-      this.weapon.put("INT", Double.valueOf(0.0D));
-      this.weapon.put("WIS", Double.valueOf(0.0D));
-      this.weapon.put("LCK", Double.valueOf(0.0D));
-      this.helm.put("STR", Double.valueOf(0.0D));
-      this.helm.put("END", Double.valueOf(0.0D));
-      this.helm.put("DEX", Double.valueOf(0.0D));
-      this.helm.put("INT", Double.valueOf(0.0D));
-      this.helm.put("WIS", Double.valueOf(0.0D));
-      this.helm.put("LCK", Double.valueOf(0.0D));
-      this.armor.put("STR", Double.valueOf(0.0D));
-      this.armor.put("END", Double.valueOf(0.0D));
-      this.armor.put("DEX", Double.valueOf(0.0D));
-      this.armor.put("INT", Double.valueOf(0.0D));
-      this.armor.put("WIS", Double.valueOf(0.0D));
-      this.armor.put("LCK", Double.valueOf(0.0D));
-      this.cape.put("STR", Double.valueOf(0.0D));
-      this.cape.put("END", Double.valueOf(0.0D));
-      this.cape.put("DEX", Double.valueOf(0.0D));
-      this.cape.put("INT", Double.valueOf(0.0D));
-      this.cape.put("WIS", Double.valueOf(0.0D));
-      this.cape.put("LCK", Double.valueOf(0.0D));
+      this.innate.put("STR", 0.0D);
+      this.innate.put("END", 0.0D);
+      this.innate.put("DEX", 0.0D);
+      this.innate.put("INT", 0.0D);
+      this.innate.put("WIS", 0.0D);
+      this.innate.put("LCK", 0.0D);
+      this.weapon.put("STR", 0.0D);
+      this.weapon.put("END", 0.0D);
+      this.weapon.put("DEX", 0.0D);
+      this.weapon.put("INT", 0.0D);
+      this.weapon.put("WIS", 0.0D);
+      this.weapon.put("LCK", 0.0D);
+      this.helm.put("STR", 0.0D);
+      this.helm.put("END", 0.0D);
+      this.helm.put("DEX", 0.0D);
+      this.helm.put("INT", 0.0D);
+      this.helm.put("WIS", 0.0D);
+      this.helm.put("LCK", 0.0D);
+      this.armor.put("STR", 0.0D);
+      this.armor.put("END", 0.0D);
+      this.armor.put("DEX", 0.0D);
+      this.armor.put("INT", 0.0D);
+      this.armor.put("WIS", 0.0D);
+      this.armor.put("LCK", 0.0D);
+      this.cape.put("STR", 0.0D);
+      this.cape.put("END", 0.0D);
+      this.cape.put("DEX", 0.0D);
+      this.cape.put("INT", 0.0D);
+      this.cape.put("WIS", 0.0D);
+      this.cape.put("LCK", 0.0D);
       this.user = user;
       this.world = world;
    }
@@ -127,14 +129,16 @@ public class Stats {
 
       while(i$.hasNext()) {
          AuraEffects ae = (AuraEffects)i$.next();
-         if(ae.getStat().equals("tha")) {
-            sta.put("$tha", Double.valueOf(this.haste));
-         } else if(ae.getStat().equals("tdo")) {
-            sta.put("$tdo", Double.valueOf(this.evasion));
-         } else if(ae.getStat().equals("thi")) {
-            sta.put("$thi", Double.valueOf(this.hit));
-         } else if(ae.getStat().equals("tcr")) {
-            sta.put("$tcr", Double.valueOf(this.criticalHit));
+         if (ae.getStat().equals("tha")) {
+            sta.put("$tha", this.haste);
+         } else if (ae.getStat().equals("tdo")) {
+            sta.put("$tdo", this.evasion);
+         } else if (ae.getStat().equals("thi")) {
+            sta.put("$thi", this.hit);
+         } else if (ae.getStat().equals("tcr")) {
+            sta.put("$tcr", this.criticalHit);
+         } else if (ae.getStat().equals("scm")) {
+            sta.put("$scm", this.$scm);
          }
       }
 
@@ -146,46 +150,105 @@ public class Stats {
    public void update() {
       this.initInnateStats();
       this.applyCoreStatRatings();
-      this.applyAuraEffects();
+      this.applyEffects();
       this.initDamage();
    }
 
-   private void applyAuraEffects() {
-      Iterator i$ = this.effects.iterator();
+   public void applyAuraStackEffects(Aura aura, int auracount) {
+      Iterator i$ = aura.effects.iterator();
+      HashSet auraEffects = new HashSet();
 
       while(i$.hasNext()) {
-         AuraEffects ae = (AuraEffects)i$.next();
-         if(ae.getStat().equals("tha")) {
-            if(ae.getType().equals("+")) {
-               this.haste += ae.getValue();
-            } else if(ae.getType().equals("-")) {
-               this.haste -= ae.getValue();
+         int effectId = (Integer)i$.next();
+         AuraEffects ae = (AuraEffects)this.world.effects.get(effectId);
+         ae.setStack(auracount);
+         this.effects.add(ae);
+         auraEffects.add(ae);
+      }
+
+      this.update();
+      this.sendStatChanges(this, auraEffects);
+   }
+
+   private void applyEffects() {
+      Iterator j$ = this.effects.iterator();
+
+      while(j$.hasNext()) {
+         AuraEffects ae = (AuraEffects)j$.next();
+         if (ae.getStat().equals("tha")) {
+            if (ae.getType().equals("+")) {
+               this.haste += ae.getValue() * (double)ae.getStack();
+            } else if (ae.getType().equals("-")) {
+               this.haste -= ae.getValue() * (double)ae.getStack();
             } else {
-               this.haste *= ae.getValue();
+               this.haste *= ae.getValue() * (double)ae.getStack();
             }
-         } else if(ae.getStat().equals("tdo")) {
-            if(ae.getType().equals("+")) {
-               this.evasion += ae.getValue();
-            } else if(ae.getType().equals("-")) {
-               this.evasion -= ae.getValue();
+         } else if (ae.getStat().equals("tdo")) {
+            if (ae.getType().equals("+")) {
+               this.evasion += ae.getValue() * (double)ae.getStack();
+            } else if (ae.getType().equals("-")) {
+               this.evasion -= ae.getValue() * (double)ae.getStack();
             } else {
-               this.evasion *= ae.getValue();
+               this.evasion *= ae.getValue() * (double)ae.getStack();
             }
-         } else if(ae.getStat().equals("thi")) {
-            if(ae.getType().equals("+")) {
-               this.hit += ae.getValue();
-            } else if(ae.getType().equals("-")) {
-               this.hit -= ae.getValue();
+         } else if (ae.getStat().equals("thi")) {
+            if (ae.getType().equals("+")) {
+               this.hit += ae.getValue() * (double)ae.getStack();
+            } else if (ae.getType().equals("-")) {
+               this.hit -= ae.getValue() * (double)ae.getStack();
             } else {
-               this.hit *= ae.getValue();
+               this.hit *= ae.getValue() * (double)ae.getStack();
             }
-         } else if(ae.getStat().equals("tcr")) {
-            if(ae.getType().equals("+")) {
-               this.criticalHit += ae.getValue();
-            } else if(ae.getType().equals("-")) {
-               this.criticalHit -= ae.getValue();
+         } else if (ae.getStat().equals("tcr")) {
+            if (ae.getType().equals("+")) {
+               this.criticalHit += ae.getValue() * (double)ae.getStack();
+            } else if (ae.getType().equals("-")) {
+               this.criticalHit -= ae.getValue() * (double)ae.getStack();
             } else {
-               this.criticalHit *= ae.getValue();
+               this.criticalHit *= ae.getValue() * (double)ae.getStack();
+            }
+         } else if (ae.getStat().equals("attackPower")) {
+            if (ae.getType().equals("+")) {
+               this.attackPower += ae.getValue() * (double)ae.getStack();
+            } else if (ae.getType().equals("-")) {
+               this.attackPower -= ae.getValue() * (double)ae.getStack();
+            } else {
+               this.attackPower *= ae.getValue() * (double)ae.getStack();
+            }
+         } else if (ae.getStat().equals("magicPower")) {
+            if (ae.getType().equals("+")) {
+               this.magicPower += ae.getValue() * (double)ae.getStack();
+            } else if (ae.getType().equals("-")) {
+               this.magicPower -= ae.getValue() * (double)ae.getStack();
+            } else {
+               this.magicPower *= ae.getValue() * (double)ae.getStack();
+            }
+         } else if (ae.getStat().equals("scm")) {
+            if (ae.getType().equals("+")) {
+               this.$scm += ae.getValue() * (double)ae.getStack();
+            } else if (ae.getType().equals("-")) {
+               this.$scm -= ae.getValue() * (double)ae.getStack();
+            } else {
+               this.$scm *= ae.getValue() * (double)ae.getStack();
+            }
+         }
+      }
+
+      Iterator userEquipments = ((JSONObject) user.properties.get(Users.EQUIPMENT)).values().iterator();
+      while (userEquipments.hasNext()) {
+         Item item = world.items.get(((JSONObject) userEquipments.next()).getInt("ItemID"));
+         if (item.passives.iterator().hasNext()) {
+            if (item.passives.iterator().next().getHaste() != 0){
+               this.haste += item.passives.iterator().next().getHaste();
+            }
+            if (item.passives.iterator().next().getDodge() != 0){
+               this.evasion += item.passives.iterator().next().getDodge();
+            }
+            if (item.passives.iterator().next().getHit() != 0){
+               this.hit += item.passives.iterator().next().getHit();
+            }
+            if (item.passives.iterator().next().getCrit() != 0){
+               this.criticalHit += item.passives.iterator().next().getCrit();
             }
          }
       }
@@ -193,7 +256,7 @@ public class Stats {
    }
 
    private void initInnateStats() {
-      int level = ((Integer)this.user.properties.get("level")).intValue();
+      int level = (Integer)this.user.properties.get("level");
       String cat = (String)this.user.properties.get("classcat");
       int innateStat = this.world.getInnateStats(level);
       List ratios = (List)classCatMap.get(cat);
@@ -202,8 +265,8 @@ public class Stats {
 
       for(Iterator i$ = keyEntry.iterator(); i$.hasNext(); ++i) {
          String key = (String)i$.next();
-         double stat = (double)Math.round(((Double)ratios.get(i)).doubleValue() * (double)innateStat);
-         this.innate.put(key, Double.valueOf(stat));
+         double stat = (double)Math.round((Double)ratios.get(i) * (double)innateStat);
+         this.innate.put(key, stat);
       }
 
    }
@@ -220,12 +283,12 @@ public class Stats {
       this._thi = 0.0D;
       this._tha = 0.0D;
       this._tre = 0.0D;
-      this.block = ((Double)this.world.coreValues.get("baseBlock")).doubleValue();
-      this.parry = ((Double)this.world.coreValues.get("baseParry")).doubleValue();
-      this.evasion = ((Double)this.world.coreValues.get("baseDodge")).doubleValue();
-      this.criticalHit = ((Double)this.world.coreValues.get("baseCrit")).doubleValue();
-      this.hit = ((Double)this.world.coreValues.get("baseHit")).doubleValue();
-      this.haste = ((Double)this.world.coreValues.get("baseHaste")).doubleValue();
+      this.block = (Double)this.world.coreValues.get("baseBlock");
+      this.parry = (Double)this.world.coreValues.get("baseParry");
+      this.evasion = (Double)this.world.coreValues.get("baseDodge");
+      this.criticalHit = (Double)this.world.coreValues.get("baseCrit");
+      this.hit = (Double)this.world.coreValues.get("baseHit");
+      this.haste = (Double)this.world.coreValues.get("baseHaste");
       this.resist = 0.0D;
       this._cpo = 1.0D;
       this._cpi = 1.0D;
@@ -249,14 +312,14 @@ public class Stats {
       this.$cho = 1.0D;
       this.$chi = 1.0D;
       this.$cmc = 1.0D;
-      this._scm = ((Double)this.world.coreValues.get("baseCritValue")).doubleValue();
-      this._sbm = ((Double)this.world.coreValues.get("baseBlockValue")).doubleValue();
-      this._srm = ((Double)this.world.coreValues.get("baseResistValue")).doubleValue();
-      this._sem = ((Double)this.world.coreValues.get("baseEventValue")).doubleValue();
-      this.$scm = ((Double)this.world.coreValues.get("baseCritValue")).doubleValue();
-      this.$sbm = ((Double)this.world.coreValues.get("baseBlockValue")).doubleValue();
-      this.$srm = ((Double)this.world.coreValues.get("baseResistValue")).doubleValue();
-      this.$sem = ((Double)this.world.coreValues.get("baseEventValue")).doubleValue();
+      this._scm = (Double)this.world.coreValues.get("baseCritValue");
+      this._sbm = (Double)this.world.coreValues.get("baseBlockValue");
+      this._srm = (Double)this.world.coreValues.get("baseResistValue");
+      this._sem = (Double)this.world.coreValues.get("baseEventValue");
+      this.$scm = (Double)this.world.coreValues.get("baseCritValue");
+      this.$sbm = (Double)this.world.coreValues.get("baseBlockValue");
+      this.$srm = (Double)this.world.coreValues.get("baseResistValue");
+      this.$sem = (Double)this.world.coreValues.get("baseEventValue");
       this._shb = 0.0D;
       this._smb = 0.0D;
       this.$shb = 0.0D;
@@ -266,13 +329,13 @@ public class Stats {
    private void applyCoreStatRatings() {
       String cat = (String)this.user.properties.get("classcat");
       Enhancement enhancement = (Enhancement)this.user.properties.get("weaponitemenhancement");
-      int level = ((Integer)this.user.properties.get("level")).intValue();
-      double wLvl = enhancement != null?(double)enhancement.getLevel():1.0D;
-      double iDPS = enhancement != null?(double)enhancement.getDPS():100.0D;
-      iDPS = iDPS == 0.0D?100.0D:iDPS;
+      int level = (Integer)this.user.properties.get("level");
+      double wLvl = enhancement != null ? (double)enhancement.getLevel() : 1.0D;
+      double iDPS = enhancement != null ? (double)enhancement.getDPS() : 100.0D;
+      iDPS = iDPS == 0.0D ? 100.0D : iDPS;
       iDPS /= 100.0D;
       double intAPtoDPS = (double)((Double)this.world.coreValues.get("intAPtoDPS")).intValue();
-      double PCDPSMod = ((Double)this.world.coreValues.get("PCDPSMod")).doubleValue();
+      double PCDPSMod = (Double)this.world.coreValues.get("PCDPSMod");
       double hpTgt = (double)this.world.getBaseHPByLevel(level);
       double TTD = 20.0D;
       double tDPS = hpTgt / 20.0D * 0.7D;
@@ -283,68 +346,68 @@ public class Stats {
 
       while(true) {
          double val;
-         label187:
+         label184:
          do {
             while(i$.hasNext()) {
                String key = (String)i$.next();
-               val = ((Double)this.innate.get(key)).doubleValue() + ((Double)this.armor.get(key)).doubleValue() + ((Double)this.weapon.get(key)).doubleValue() + ((Double)this.helm.get(key)).doubleValue() + ((Double)this.cape.get(key)).doubleValue();
-               if(key.equals("STR")) {
-                  if(cat.equals("M1")) {
+               val = (Double)this.innate.get(key) + (Double)this.armor.get(key) + (Double)this.weapon.get(key) + (Double)this.helm.get(key) + (Double)this.cape.get(key);
+               if (key.equals("STR")) {
+                  if (cat.equals("M1")) {
                      this.$sbm -= val / sp1pc / 100.0D * 0.3D;
                   }
 
-                  if(cat.equals("S1")) {
+                  if (cat.equals("S1")) {
                      this.attackPower += (double)Math.round(val * 1.4D);
                   } else {
                      this.attackPower += val * 2.0D;
                   }
-                  continue label187;
+                  continue label184;
                }
 
-               if(key.equals("INT")) {
+               if (key.equals("INT")) {
                   this.$cmi -= val / sp1pc / 100.0D;
-                  if(cat.substring(0, 1).equals("C") || cat.equals("M3")) {
+                  if (cat.substring(0, 1).equals("C") || cat.equals("M3")) {
                      this.$cmo += val / sp1pc / 100.0D;
                   }
 
-                  if(cat.equals("S1")) {
+                  if (cat.equals("S1")) {
                      this.magicPower += (double)Math.round(val * 1.4D);
                   } else {
                      this.magicPower += val * 2.0D;
                   }
 
-                  if(cat.equals("C1") || cat.equals("C2") || cat.equals("C3") || cat.equals("M3") || cat.equals("S1")) {
-                     if(cat.equals("C2")) {
+                  if (cat.equals("C1") || cat.equals("C2") || cat.equals("C3") || cat.equals("M3") || cat.equals("S1")) {
+                     if (cat.equals("C2")) {
                         this.haste += val / sp1pc / 100.0D * 0.5D;
                      } else {
                         this.haste += val / sp1pc / 100.0D * 0.3D;
                      }
                   }
-               } else if(key.equals("DEX")) {
-                  if(cat.equals("M1") || cat.equals("M2") || cat.equals("M3") || cat.equals("M4") || cat.equals("S1")) {
-                     if(!cat.substring(0, 1).equals("C")) {
+               } else if (key.equals("DEX")) {
+                  if (cat.equals("M1") || cat.equals("M2") || cat.equals("M3") || cat.equals("M4") || cat.equals("S1")) {
+                     if (!cat.substring(0, 1).equals("C")) {
                         this.hit += val / sp1pc / 100.0D * 0.2D;
                      }
 
-                     if(!cat.equals("M2") && !cat.equals("M4")) {
+                     if (!cat.equals("M2") && !cat.equals("M4")) {
                         this.haste += val / sp1pc / 100.0D * 0.3D;
                      } else {
                         this.haste += val / sp1pc / 100.0D * 0.5D;
                      }
 
-                     if(cat.equals("M1") && this._tbl > 0.01D) {
+                     if (cat.equals("M1") && this._tbl > 0.01D) {
                         this.block += val / sp1pc / 100.0D * 0.5D;
                      }
                   }
 
-                  if(!cat.equals("M2") && !cat.equals("M3")) {
+                  if (!cat.equals("M2") && !cat.equals("M3")) {
                      this.evasion += val / sp1pc / 100.0D * 0.3D;
                   } else {
                      this.evasion += val / sp1pc / 100.0D * 0.5D;
                   }
-               } else if(key.equals("WIS")) {
-                  if(cat.equals("C1") || cat.equals("C2") || cat.equals("C3") || cat.equals("S1")) {
-                     if(cat.equals("C1")) {
+               } else if (key.equals("WIS")) {
+                  if (cat.equals("C1") || cat.equals("C2") || cat.equals("C3") || cat.equals("S1")) {
+                     if (cat.equals("C1")) {
                         this.criticalHit += val / sp1pc / 100.0D * 0.7D;
                      } else {
                         this.criticalHit += val / sp1pc / 100.0D * 0.4D;
@@ -354,9 +417,9 @@ public class Stats {
                   }
 
                   this.evasion += val / sp1pc / 100.0D * 0.3D;
-               } else if(key.equals("LCK")) {
+               } else if (key.equals("LCK")) {
                   this.$sem += val / sp1pc / 100.0D * 2.0D;
-                  if(cat.equals("S1")) {
+                  if (cat.equals("S1")) {
                      this.attackPower += (double)Math.round(val * 1.0D);
                      this.magicPower += (double)Math.round(val * 1.0D);
                      this.criticalHit += val / sp1pc / 100.0D * 0.3D;
@@ -365,11 +428,11 @@ public class Stats {
                      this.evasion += val / sp1pc / 100.0D * 0.25D;
                      this.$scm += val / sp1pc / 100.0D * 2.5D;
                   } else {
-                     if(cat.equals("M1") || cat.equals("M2") || cat.equals("M3") || cat.equals("M4")) {
+                     if (cat.equals("M1") || cat.equals("M2") || cat.equals("M3") || cat.equals("M4")) {
                         this.attackPower += (double)Math.round(val * 0.7D);
                      }
 
-                     if(cat.equals("C1") || cat.equals("C2") || cat.equals("C3") || cat.equals("M3")) {
+                     if (cat.equals("C1") || cat.equals("C2") || cat.equals("C3") || cat.equals("M3")) {
                         this.magicPower += (double)Math.round(val * 0.7D);
                      }
 
@@ -386,7 +449,7 @@ public class Stats {
             return;
          } while(!cat.equals("M1") && !cat.equals("M2") && !cat.equals("M3") && !cat.equals("M4") && !cat.equals("S1"));
 
-         if(cat.equals("M4")) {
+         if (cat.equals("M4")) {
             this.criticalHit += val / sp1pc / 100.0D * 0.7D;
          } else {
             this.criticalHit += val / sp1pc / 100.0D * 0.4D;
@@ -397,7 +460,7 @@ public class Stats {
    private void initDamage() {
       Map userSkills = (Map)this.user.properties.get("skills");
       Item weaponItem = (Item)this.user.properties.get("weaponitem");
-      if(userSkills != null && weaponItem != null) {
+      if (userSkills != null && weaponItem != null) {
          Skill autoAttack = (Skill)this.world.skills.get(userSkills.get("aa"));
          double wSPD = 2.0D;
          double wDMG = (double)this.wDPS * wSPD;
@@ -406,36 +469,33 @@ public class Stats {
          double tDMG = wDMG * autoAttack.getDamage();
          this.minDmg = (int)Math.floor(tDMG - tDMG * iRNG);
          this.maxDmg = (int)Math.ceil(tDMG + tDMG * iRNG);
-         SmartFoxServer.log.fine("wSPD : " + wSPD);
-         SmartFoxServer.log.fine("wDMG : " + wDMG);
-         SmartFoxServer.log.fine("iRNG : " + iRNG);
-         SmartFoxServer.log.fine("tDMG : " + tDMG);
+
       }
 
    }
 
    public int get$DEX() {
-      return (int)(((Double)this.weapon.get("DEX")).doubleValue() + ((Double)this.armor.get("DEX")).doubleValue() + ((Double)this.helm.get("DEX")).doubleValue() + ((Double)this.cape.get("DEX")).doubleValue());
+      return (int)((Double)this.weapon.get("DEX") + (Double)this.armor.get("DEX") + (Double)this.helm.get("DEX") + (Double)this.cape.get("DEX"));
    }
 
    public int get$END() {
-      return (int)(((Double)this.weapon.get("END")).doubleValue() + ((Double)this.armor.get("END")).doubleValue() + ((Double)this.helm.get("END")).doubleValue() + ((Double)this.cape.get("END")).doubleValue());
+      return (int)((Double)this.weapon.get("END") + (Double)this.armor.get("END") + (Double)this.helm.get("END") + (Double)this.cape.get("END"));
    }
 
    public int get$INT() {
-      return (int)(((Double)this.weapon.get("INT")).doubleValue() + ((Double)this.armor.get("INT")).doubleValue() + ((Double)this.helm.get("INT")).doubleValue() + ((Double)this.cape.get("INT")).doubleValue());
+      return (int)((Double)this.weapon.get("INT") + (Double)this.armor.get("INT") + (Double)this.helm.get("INT") + (Double)this.cape.get("INT"));
    }
 
    public int get$LCK() {
-      return (int)(((Double)this.weapon.get("LCK")).doubleValue() + ((Double)this.armor.get("LCK")).doubleValue() + ((Double)this.helm.get("LCK")).doubleValue() + ((Double)this.cape.get("LCK")).doubleValue());
+      return (int)((Double)this.weapon.get("LCK") + (Double)this.armor.get("LCK") + (Double)this.helm.get("LCK") + (Double)this.cape.get("LCK"));
    }
 
    public int get$STR() {
-      return (int)(((Double)this.weapon.get("STR")).doubleValue() + ((Double)this.armor.get("STR")).doubleValue() + ((Double)this.helm.get("STR")).doubleValue() + ((Double)this.cape.get("STR")).doubleValue());
+      return (int)((Double)this.weapon.get("STR") + (Double)this.armor.get("STR") + (Double)this.helm.get("STR") + (Double)this.cape.get("STR"));
    }
 
    public int get$WIS() {
-      return (int)(((Double)this.weapon.get("WIS")).doubleValue() + ((Double)this.armor.get("WIS")).doubleValue() + ((Double)this.helm.get("WIS")).doubleValue() + ((Double)this.cape.get("WIS")).doubleValue());
+      return (int)((Double)this.weapon.get("WIS") + (Double)this.armor.get("WIS") + (Double)this.helm.get("WIS") + (Double)this.cape.get("WIS"));
    }
 
    public double get$ap() {
@@ -543,27 +603,27 @@ public class Stats {
    }
 
    public double get_DEX() {
-      return ((Double)this.innate.get("DEX")).doubleValue();
+      return (Double)this.innate.get("DEX");
    }
 
    public double get_END() {
-      return ((Double)this.innate.get("END")).doubleValue();
+      return (Double)this.innate.get("END");
    }
 
    public double get_INT() {
-      return ((Double)this.innate.get("INT")).doubleValue();
+      return (Double)this.innate.get("INT");
    }
 
    public double get_LCK() {
-      return ((Double)this.innate.get("LCK")).doubleValue();
+      return (Double)this.innate.get("LCK");
    }
 
    public double get_STR() {
-      return ((Double)this.innate.get("STR")).doubleValue();
+      return (Double)this.innate.get("STR");
    }
 
    public double get_WIS() {
-      return ((Double)this.innate.get("WIS")).doubleValue();
+      return (Double)this.innate.get("WIS");
    }
 
    public double get_ap() {
@@ -679,14 +739,14 @@ public class Stats {
    }
 
    static {
-      List M1 = Arrays.asList(new Double[]{Double.valueOf(0.27D), Double.valueOf(0.3D), Double.valueOf(0.22D), Double.valueOf(0.05D), Double.valueOf(0.1D), Double.valueOf(0.06D)});
-      List M2 = Arrays.asList(new Double[]{Double.valueOf(0.2D), Double.valueOf(0.22D), Double.valueOf(0.33D), Double.valueOf(0.05D), Double.valueOf(0.1D), Double.valueOf(0.1D)});
-      List M3 = Arrays.asList(new Double[]{Double.valueOf(0.24D), Double.valueOf(0.2D), Double.valueOf(0.2D), Double.valueOf(0.24D), Double.valueOf(0.07D), Double.valueOf(0.05D)});
-      List M4 = Arrays.asList(new Double[]{Double.valueOf(0.3D), Double.valueOf(0.18D), Double.valueOf(0.3D), Double.valueOf(0.02D), Double.valueOf(0.06D), Double.valueOf(0.14D)});
-      List C1 = Arrays.asList(new Double[]{Double.valueOf(0.06D), Double.valueOf(0.2D), Double.valueOf(0.11D), Double.valueOf(0.33D), Double.valueOf(0.15D), Double.valueOf(0.15D)});
-      List C2 = Arrays.asList(new Double[]{Double.valueOf(0.08D), Double.valueOf(0.27D), Double.valueOf(0.1D), Double.valueOf(0.3D), Double.valueOf(0.1D), Double.valueOf(0.15D)});
-      List C3 = Arrays.asList(new Double[]{Double.valueOf(0.06D), Double.valueOf(0.23D), Double.valueOf(0.05D), Double.valueOf(0.28D), Double.valueOf(0.28D), Double.valueOf(0.1D)});
-      List S1 = Arrays.asList(new Double[]{Double.valueOf(0.22D), Double.valueOf(0.18D), Double.valueOf(0.21D), Double.valueOf(0.08D), Double.valueOf(0.08D), Double.valueOf(0.23D)});
+      List M1 = Arrays.asList(0.27D, 0.3D, 0.22D, 0.05D, 0.1D, 0.06D);
+      List M2 = Arrays.asList(0.2D, 0.22D, 0.33D, 0.05D, 0.1D, 0.1D);
+      List M3 = Arrays.asList(0.24D, 0.2D, 0.2D, 0.24D, 0.07D, 0.05D);
+      List M4 = Arrays.asList(0.3D, 0.18D, 0.3D, 0.02D, 0.06D, 0.14D);
+      List C1 = Arrays.asList(0.06D, 0.2D, 0.11D, 0.33D, 0.15D, 0.15D);
+      List C2 = Arrays.asList(0.08D, 0.27D, 0.1D, 0.3D, 0.1D, 0.15D);
+      List C3 = Arrays.asList(0.06D, 0.23D, 0.05D, 0.28D, 0.28D, 0.1D);
+      List S1 = Arrays.asList(0.22D, 0.18D, 0.21D, 0.08D, 0.08D, 0.23D);
       HashMap catMap = new HashMap(8);
       catMap.put("M1", M1);
       catMap.put("M2", M2);
@@ -698,10 +758,10 @@ public class Stats {
       catMap.put("S1", S1);
       classCatMap = catMap;
       HashMap ratioEquip = new HashMap(4);
-      ratioEquip.put("he", Double.valueOf(0.25D));
-      ratioEquip.put("ar", Double.valueOf(0.25D));
-      ratioEquip.put("ba", Double.valueOf(0.2D));
-      ratioEquip.put("Weapon", Double.valueOf(0.33D));
+      ratioEquip.put("he", 0.25D);
+      ratioEquip.put("ar", 0.25D);
+      ratioEquip.put("ba", 0.2D);
+      ratioEquip.put("Weapon", 0.33D);
       ratioByEquipment = ratioEquip;
    }
 }

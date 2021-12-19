@@ -1,3 +1,8 @@
+//
+// Source code recreated from a .class file by IntelliJ IDEA
+// (powered by Fernflower decompiler)
+//
+
 package nereus.tasks;
 
 import nereus.ai.MonsterAI;
@@ -17,19 +22,18 @@ public class RemoveAura implements Runnable, CancellableTask {
    private World world;
    private Aura aura;
    private DamageOverTime dot;
+   private int auraCount;
    private ScheduledFuture<?> running;
    private User user;
    private MonsterAI ai;
 
    public RemoveAura(World world, Aura aura, MonsterAI ai) {
-      super();
       this.world = world;
       this.aura = aura;
       this.ai = ai;
    }
 
    public RemoveAura(World world, Aura aura, User user) {
-      super();
       this.world = world;
       this.aura = aura;
       this.user = user;
@@ -40,9 +44,9 @@ public class RemoveAura implements Runnable, CancellableTask {
       JSONArray a = new JSONArray();
       JSONObject o = new JSONObject();
       JSONObject auraInfo = new JSONObject();
-      if(!this.aura.getCategory().isEmpty() && !this.aura.getCategory().equals("d")) {
+      if (!this.aura.getCategory().isEmpty() && !this.aura.getCategory().equals("d")) {
          auraInfo.put("cat", this.aura.getCategory());
-         if(this.aura.getCategory().equals("stun")) {
+         if (this.aura.getCategory().equals("stun")) {
             auraInfo.put("s", "s");
          }
       }
@@ -50,53 +54,64 @@ public class RemoveAura implements Runnable, CancellableTask {
       auraInfo.put("nam", this.aura.getName());
       o.put("cmd", "aura-");
       o.put("aura", auraInfo);
-      if(this.user != null) {
+      if (this.user != null) {
          o.put("tInf", "p:" + this.user.getUserId());
-      } else if(this.ai != null) {
+      } else if (this.ai != null) {
          o.put("tInf", "m:" + this.ai.getMapId());
       }
 
       a.add(o);
       ct.put("cmd", "ct");
       ct.put("a", a);
-      if(this.user != null) {
-         Set auras = (Set)this.user.properties.get("auras");
-         auras.remove(this);
-         if(!this.aura.effects.isEmpty()) {
-            Stats stats = (Stats)this.user.properties.get("stats");
-            HashSet auraEffects = new HashSet();
-            Iterator i$ = this.aura.effects.iterator();
+      if (this.user != null) {
+         try {
+            Set auras = (Set)this.user.properties.get("auras");
+            auras.remove(this);
+            if (!this.aura.effects.isEmpty()) {
+               Stats stats = (Stats)this.user.properties.get("stats");
+               HashSet auraEffects = new HashSet();
+               Iterator i$ = this.aura.effects.iterator();
 
-            while(i$.hasNext()) {
-               int effectId = ((Integer)i$.next()).intValue();
-               AuraEffects ae = (AuraEffects)this.world.effects.get(Integer.valueOf(effectId));
-               stats.effects.remove(ae);
-               auraEffects.add(ae);
+               while(i$.hasNext()) {
+                  int effectId = (Integer)i$.next();
+                  AuraEffects ae = (AuraEffects)this.world.effects.get(effectId);
+                  stats.effects.remove(ae);
+                  auraEffects.add(ae);
+               }
+
+               stats.update();
+               stats.sendStatChanges(stats, auraEffects);
             }
-
-            stats.update();
-            stats.sendStatChanges(stats, auraEffects);
+         } catch (Exception var11) {
+            var11.printStackTrace();
          }
 
          this.world.send(ct, this.world.zone.getRoom(this.user.getRoom()).getChannellList());
-      } else if(this.ai != null) {
+      } else if (this.ai != null) {
          this.ai.removeAura(this);
          this.world.send(ct, this.ai.getRoom().getChannellList());
       }
 
-      if(this.dot != null) {
+      if (this.dot != null) {
          this.dot.cancel();
       }
 
    }
 
    public void cancel() {
-      if(this.dot != null) {
+      if (this.dot != null) {
          this.dot.cancel();
       }
 
-      if(this.running != null) {
+      if (this.running != null) {
          this.running.cancel(false);
+      }
+
+   }
+
+   public void cancelRunning() {
+      if (this.running != null) {
+         this.running.cancel(true);
       }
 
    }
@@ -109,6 +124,10 @@ public class RemoveAura implements Runnable, CancellableTask {
       return this.aura;
    }
 
+   public DamageOverTime getDot() {
+      return this.dot;
+   }
+
    public void setDot(DamageOverTime dot) {
       this.dot = dot;
    }
@@ -117,14 +136,31 @@ public class RemoveAura implements Runnable, CancellableTask {
       return this.aura.getId() + this.running.hashCode();
    }
 
+   public void incrementAuraCount() {
+      if (this.auraCount >= this.aura.getMaxStack()) {
+         this.auraCount = this.aura.getMaxStack();
+      } else {
+         ++this.auraCount;
+      }
+
+   }
+
+   public void setAuraCount(int count) {
+      this.auraCount = count;
+   }
+
+   public int getAuraCount() {
+      return this.auraCount;
+   }
+
    public boolean equals(Object obj) {
-      if(obj == null) {
+      if (obj == null) {
          return false;
-      } else if(this.getClass() != obj.getClass()) {
+      } else if (this.getClass() != obj.getClass()) {
          return false;
       } else {
          RemoveAura other = (RemoveAura)obj;
-         return this.aura.getId() == other.aura.getId() || this.aura != null && this.aura.equals(other.aura)?this.running.hashCode() == other.running.hashCode() || this.running != null && this.running.equals(other.running):false;
+         return this.aura.getId() != other.aura.getId() && (this.aura == null || !this.aura.equals(other.aura)) ? false : this.running.hashCode() == other.running.hashCode() || this.running != null && this.running.equals(other.running);
       }
    }
 }

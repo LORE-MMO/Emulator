@@ -3,6 +3,7 @@ package nereus.requests;
 import nereus.db.objects.Aura;
 import nereus.db.objects.AuraEffects;
 import nereus.db.objects.Skill;
+import nereus.db.objects.SkillAuras;
 import nereus.dispatcher.IRequest;
 import nereus.dispatcher.RequestException;
 import nereus.world.World;
@@ -39,48 +40,57 @@ public class GetPotionEffect implements IRequest {
          o.put("typ", skill.getType());
          o.put("strl", skill.getStrl());
          o.put("cd", Integer.valueOf(skill.getCooldown()));
-         if (skill.hasAura()) {
-            JSONArray auras = new JSONArray();
-            Iterator var11 = skill.auras.entrySet().iterator();
-            Map.Entry<Integer, Integer> entry = (Map.Entry)var11.next();
-            Aura aura = world.auras.get(Integer.valueOf(entry.getKey()));
-            if(!aura.effects.isEmpty()) {
+         Iterator multi = skill.auraskill.entries().iterator();
+
+         while(true) {
+            int auraid;
+            do {
+               if (!multi.hasNext()) {
+                  seia.put("cmd", seia);
+                  seia.put("o", o);
+                  world.send(seia, user);
+                  Map skills1 = (Map)user.properties.get("skills");
+                  skills1.put(skill.getReference(), skillId);
+                  return;
+               }
+
+               Map.Entry<Integer, SkillAuras> entry = (Map.Entry)multi.next();
+               SkillAuras iniaurainfo = (SkillAuras)entry.getValue();
+               auraid = iniaurainfo.auraid;
+            } while(auraid <= 0);
+
+            JSONArray skills = new JSONArray();
+            Aura aura = (Aura)world.auras.get(auraid);
+            if (!aura.effects.isEmpty()) {
                JSONObject auraInfo = new JSONObject();
                JSONArray effects = new JSONArray();
                Iterator i$ = aura.effects.iterator();
 
                while(i$.hasNext()) {
-                  int effectId = ((Integer)i$.next()).intValue();
-                  AuraEffects ae = world.effects.get(Integer.valueOf(effectId));
+                  int effectId = (Integer)i$.next();
+                  AuraEffects ae = (AuraEffects)world.effects.get(effectId);
                   JSONObject effect = new JSONObject();
                   effect.put("typ", ae.getType());
                   effect.put("sta", ae.getStat());
-                  effect.put("id", Integer.valueOf(ae.getId()));
-                  effect.put("val", Double.valueOf(ae.getValue()));
+                  effect.put("id", ae.getId());
+                  effect.put("val", ae.getValue());
                   effects.add(effect);
                }
 
-               if(!effects.isEmpty()) {
+               if (!effects.isEmpty()) {
                   auraInfo.put("e", effects);
                }
 
-               if(aura.getDuration() > 0) {
+               if (aura.getDuration() > 0) {
                   auraInfo.put("t", "s");
                }
 
                auraInfo.put("nam", aura.getName());
-               auras.add(auraInfo);
+               skills.add(auraInfo);
             }
-            if (!var11.hasNext()) {
-               o.put("auras", auras);
-            }
-         }
 
-         seia.put("cmd", seia);
-         seia.put("o", o);
-         world.send(seia, user);
-         Map skills1 = (Map)user.properties.get("skills");
-         skills1.put(skill.getReference(), Integer.valueOf(skillId));
+            o.put("auras", skills);
+         }
       }
    }
 }

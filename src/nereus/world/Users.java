@@ -446,12 +446,27 @@ public class Users {
       boolean goldBoost = ((Boolean) user.properties.get(Users.BOOST_GOLD)).booleanValue();
       boolean repBoost = ((Boolean) user.properties.get(Users.BOOST_REP)).booleanValue();
       boolean cpBoost = ((Boolean) user.properties.get(Users.BOOST_CP)).booleanValue();
-
       int calcExp = xpBoost ? exp * (1 + this.world.EXP_RATE) : exp * this.world.EXP_RATE;
       int calcGold = goldBoost ? gold * (1 + this.world.GOLD_RATE) : gold * this.world.GOLD_RATE;
       int calcCoins = coins;
       int calcRep = repBoost ? rep * (1 + this.world.REP_RATE) : rep * this.world.REP_RATE;
       int calcCp = cpBoost ? cp * (1 + this.world.CP_RATE) : cp * this.world.CP_RATE;
+
+      Iterator userEquipments = ((JSONObject) user.properties.get(Users.EQUIPMENT)).values().iterator();
+      while (userEquipments.hasNext()) {
+         Item item = world.items.get(((JSONObject) userEquipments.next()).getInt("ItemID"));
+         if (item.passives.iterator().hasNext()) {
+            if(item.passives.iterator().next().getExtraExp() != 0){
+               calcExp *= 1.0D + item.passives.iterator().next().getExtraExp();
+            }
+            if(item.passives.iterator().next().getExtragold() != 0){
+               calcGold *= 1.0D + item.passives.iterator().next().getExtragold();
+            }
+            if(item.passives.iterator().next().getExtragold() != 0){
+               calcRep *= 1.0D + item.passives.iterator().next().getExtrarep();
+            }
+         }
+      }
 
       int maxLevel = ((Double) this.world.coreValues.get("intLevelMax")).intValue();
       int expReward = ((Integer) user.properties.get(Users.LEVEL)).intValue() < maxLevel ? calcExp : 0;
@@ -642,31 +657,42 @@ public class Users {
    }
 
    public boolean hasAura(User user, int auraId) {
-      Set auras = (Set) user.properties.get(Users.AURAS);
+      Set auras = (Set)user.properties.get("auras");
       Iterator i$ = auras.iterator();
 
-      Aura aura;
+      while(i$.hasNext()) {
+         RemoveAura ra = (RemoveAura)i$.next();
+         Aura aura = ra.getAura();
+         if (aura.getId() == auraId) {
+            return true;
+         }
+      }
+
+      return false;
+   }
+
+   public RemoveAura getAura(User user, int auraId) {
+      Set auras = (Set)user.properties.get("auras");
+      Iterator i$ = auras.iterator();
+
+      RemoveAura ra;
       do {
          if (!i$.hasNext()) {
-            return false;
+            return null;
          }
 
-         RemoveAura ra = (RemoveAura) i$.next();
-         aura = ra.getAura();
-      } while (aura.getId() != auraId);
+         ra = (RemoveAura)i$.next();
+      } while(ra.getAura().getId() != auraId);
 
-      return true;
+      return ra;
    }
 
-   public void removeAura(User user, RemoveAura ra) {
-      Set auras = (Set) user.properties.get(Users.AURAS);
-      auras.remove(ra);
-   }
 
    public RemoveAura applyAura(User user, Aura aura) {
-      Set auras = (Set) user.properties.get(Users.AURAS);
+      Set auras = (Set)user.properties.get("auras");
       RemoveAura ra = new RemoveAura(this.world, aura, user);
-      ra.setRunning(this.world.scheduleTask(ra, (long) aura.getDuration(), TimeUnit.SECONDS));
+      ra.setAuraCount(1);
+      ra.setRunning(this.world.scheduleTask(ra, (long)aura.getDuration(), TimeUnit.SECONDS));
       auras.add(ra);
       return ra;
    }
@@ -813,16 +839,17 @@ public class Users {
    }
 
    public void updateClass(User user, Item item, int classPoints) {
+      Class initest = (Class) this.world.classes.get(item.getId());
       JSONObject updateClass = new JSONObject();
       updateClass.put("cmd", "updateClass");
       updateClass.put("iCP", Integer.valueOf(classPoints));
-      updateClass.put("sClassCat", item.classObj.getCategory());
-      updateClass.put("sDesc", item.classObj.getDescription());
-      updateClass.put("sStats", item.classObj.getStatsDescription());
+      updateClass.put("sClassCat", initest.getCategory());
+      updateClass.put("sDesc", initest.getDescription());
+      updateClass.put("sStats", initest.getStatsDescription());
       updateClass.put("uid", Integer.valueOf(user.getUserId()));
-      if (item.classObj.getManaRegenerationMethods().contains(":")) {
+      if (initest.getManaRegenerationMethods().contains(":")) {
          JSONArray aMRM = new JSONArray();
-         String[] arr$ = item.classObj.getManaRegenerationMethods().split(",");
+         String[] arr$ = initest.getManaRegenerationMethods().split(",");
          int len$ = arr$.length;
 
          for (int i$ = 0; i$ < len$; ++i$) {
@@ -832,7 +859,7 @@ public class Users {
 
          updateClass.put("aMRM", aMRM);
       } else {
-         updateClass.put("aMRM", item.classObj.getManaRegenerationMethods());
+         updateClass.put("aMRM", initest.getManaRegenerationMethods());
       }
 
       updateClass.put("sClassName", item.getName());
@@ -840,20 +867,17 @@ public class Users {
       updateClass.clear();
       updateClass.put("cmd", "updateClass");
       updateClass.put("iCP", Integer.valueOf(classPoints));
-      updateClass.put("sClassCat", item.classObj.getCategory());
+      updateClass.put("sClassCat", initest.getCategory());
       updateClass.put("sClassName", item.getName());
       updateClass.put("uid", Integer.valueOf(user.getUserId()));
-      user.properties.put(Users.CLASS_POINTS, Integer.valueOf(classPoints));
-      user.properties.put(Users.CLASS_NAME, item.getName());
-      user.properties.put(Users.CLASS_CATEGORY, item.classObj.getCategory());
-
-//Element element = (Element)this.world.elements.get(Integer.valueOf(item.getElementId()));
-//user.properties.put("none", element.getElement());
-      user.properties.put("none", "Fire");
+      user.properties.put("cp", Integer.valueOf(classPoints));
+      user.properties.put("classname", item.getName());
+      user.properties.put("classcat", initest.getCategory());
+      user.properties.put("none", item.getElement());
       this.world.sendToRoomButOne(updateClass, user, this.world.zone.getRoom(user.getRoom()));
-//this.loadUserSkills(user, item, classPoints);
       this.loadSkills(user, item, classPoints);
    }
+
 
    public void regen(User user) {
       Regeneration regen = (Regeneration) user.properties.get(Users.REGENERATION);
@@ -877,90 +901,53 @@ public class Users {
       this.world.send(ca1, user);
    }
 
-   private void applyPassiveAuras(User user, int rank, Class classObj) {
-      if (rank < 4) return;
+   private void applyPassiveAuras(User user, int rank, Item item) {
+      Class initest = this.world.classes.get(item.getId());
 
-      JSONObject aurap = new JSONObject();
-      JSONArray auras = new JSONArray();
+      if (rank >= 4) {
+         JSONObject aurap = new JSONObject();
+         JSONArray auras = new JSONArray();
+         Stats stats = (Stats)user.properties.get("stats");
+         Iterator i$ = initest.skills.iterator();
 
-      Stats stats = (Stats) user.properties.get(Users.STATS);
+         while (i$.hasNext()) {
+            int skillId = ((Integer)i$.next()).intValue();
+            Skill skill = world.skills.get(Integer.valueOf(skillId));
+            Iterator multi = skill.auraskill.entries().iterator();
 
-//      for (Iterator i$ = classObj.skills.iterator(); i$.hasNext(); ) {
-//         Map.Entry<Integer, Integer> entry1 = (Map.Entry) i$.next();
-//         Skill skill = this.world.skills.get(Integer.valueOf(entry1.getKey()));
-//
-//         if (skill.getType().equals("passive") && skill.hasAura()) {
-//            for (Iterator o$ = skill.auras.entrySet().iterator(); o$.hasNext(); ) {
-//               Entry<Integer, Integer> entry2 = (Entry) o$.next();
-//               Aura aura = this.world.auras.get(entry2.getKey());
-//
-//               if (!aura.effects.isEmpty()) {
-//                  JSONObject auraObj = new JSONObject();
-//                  JSONArray effects = new JSONArray();
-//
-//                  for (int effectId : aura.effects) {
-//                     AuraEffects ae = this.world.effects.get(effectId);
-//
-//                     JSONObject effect = new JSONObject();
-//
-//                     effect.put("typ", ae.getType());
-//                     effect.put("sta", ae.getStat());
-//                     effect.put("id", ae.getId());
-//                     effect.put("val", ae.getValue());
-//
-//                     effects.add(effect);
-//
-//                     stats.effects.add(ae);
-//                  }
-//
-//                  auraObj.put("nam", aura.getName());
-//                  auraObj.put("e", effects);
-//
-//                  auras.add(auraObj);
-//               }
-//            }
-//         }
-//      }
+            while (multi.hasNext()) {
+               Map.Entry<Integer, SkillAuras> entry = (Map.Entry)multi.next();
+               SkillAuras iniaurainfo = (SkillAuras)entry.getValue();
+               int iniauraid = iniaurainfo.auraid;
+               Aura iniaura = (Aura)world.auras.get(iniauraid);
 
-      for (int skillId : classObj.skills) {
-         Skill skill = this.world.skills.get(skillId);
+               if ((skill.getType().equals("passive")) && (!skill.auraskill.isEmpty())) {
+                  JSONObject auraObj = new JSONObject();
+                  JSONArray effects = new JSONArray();
 
-         if (skill.getType().equals("passive") && skill.hasAuraId()) {
-            Aura aura = this.world.auras.get(skill.getAuraId());
-
-            if (!aura.effects.isEmpty()) {
-
-               JSONObject auraObj = new JSONObject();
-               JSONArray effects = new JSONArray();
-
-               for (int effectId : aura.effects) {
-                  AuraEffects ae = this.world.effects.get(effectId);
-
-                  JSONObject effect = new JSONObject();
-
-                  effect.put("typ", ae.getType());
-                  effect.put("sta", ae.getStat());
-                  effect.put("id", ae.getId());
-                  effect.put("val", ae.getValue());
-
-                  effects.add(effect);
-
-                  stats.effects.add(ae);
+                  for (int effectId : iniaura.effects) {
+                     AuraEffects ae = this.world.effects.get(effectId);
+                     JSONObject effect = new JSONObject();
+                     effect.put("typ", ae.getType());
+                     effect.put("sta", ae.getStat());
+                     effect.put("id", ae.getId());
+                     effect.put("val", ae.getValue());
+                     effects.add(effect);
+                     stats.effects.add(ae);
+                  }
+                  auraObj.put("nam", iniaura.getName());
+                  auraObj.put("e", effects);
+                  auras.add(auraObj);
                }
-
-               auraObj.put("nam", aura.getName());
-               auraObj.put("e", effects);
-
-               auras.add(auraObj);
             }
          }
+
+
+         aurap.put("auras", auras);
+         aurap.put("cmd", "aura+p");
+         aurap.put("tInf", "p:" + user.getUserId());
+         world.send(aurap, user);
       }
-
-      aurap.put("auras", auras);
-      aurap.put("cmd", "aura+p");
-      aurap.put("tInf", "p:" + user.getUserId());
-
-      this.world.send(aurap, user);
    }
 
    public JSONArray getGuildHallData(int guildId) {
@@ -1071,17 +1058,18 @@ public class Users {
 
    public void loadSkills(User user, Item item, int classPoints) {
       int rank = Rank.getRankFromPoints(classPoints);
-      Map skills = (Map) user.properties.get(Users.SKILLS);
-      Item weaponItem = (Item) user.properties.get(Users.ITEM_WEAPON);
+      Map skills = (Map) user.properties.get("skills");
+      Item weaponItem = (Item) user.properties.get("weaponitem");
       JSONArray active = new JSONArray();
       JSONArray passive = new JSONArray();
       JSONObject sAct = new JSONObject();
       sAct.put("cmd", "sAct");
-      Iterator actions = item.classObj.skills.iterator();
+      Class initest = (Class) this.world.classes.get(item.getId());
+      Iterator actions = initest.skills.iterator();
 
       while (actions.hasNext()) {
          int skill = ((Integer) actions.next()).intValue();
-         Skill actObj = this.world.skills.get(Integer.valueOf(skill));
+         Skill actObj = (Skill) this.world.skills.get(Integer.valueOf(skill));
          JSONObject arrAuras;
          if (actObj.getType().equals("passive")) {
             arrAuras = new JSONObject();
@@ -1094,7 +1082,6 @@ public class Users {
             arrAuras.put("ref", actObj.getReference());
             arrAuras.put("tgt", actObj.getTarget());
             arrAuras.put("typ", actObj.getType());
-
             JSONArray arrAuras1 = new JSONArray();
             arrAuras1.add(new JSONObject());
             arrAuras.put("auras", arrAuras1);
@@ -1172,15 +1159,14 @@ public class Users {
 
                active.element(4, arrAuras);
             }
-
             skills.put(actObj.getReference(), Integer.valueOf(skill));
          }
       }
 
       JSONObject actions1;
       if (weaponItem != null && this.world.specialskills.containsKey(Integer.valueOf(weaponItem.getId()))) {
-         int actions2 = (this.world.specialskills.get(Integer.valueOf(weaponItem.getId()))).intValue();
-         Skill skill1 = this.world.skills.get(Integer.valueOf(actions2));
+         int actions2 = ((Integer) this.world.specialskills.get(Integer.valueOf(weaponItem.getId()))).intValue();
+         Skill skill1 = (Skill) this.world.skills.get(Integer.valueOf(actions2));
          JSONObject actObj1;
          if (skill1.getType().equals("passive")) {
             actObj1 = new JSONObject();
@@ -1255,13 +1241,12 @@ public class Users {
          actions1.put("typ", "i");
          active.element(5, actions1);
       }
-
       actions1 = new JSONObject();
       actions1.put("active", active);
       actions1.put("passive", passive);
       sAct.put("actions", actions1);
       this.clearAuras(user);
-      this.applyPassiveAuras(user, rank, item.classObj);
+      this.applyPassiveAuras(user, rank, item);
       this.world.send(sAct, user);
    }
 
@@ -1881,14 +1866,14 @@ public class Users {
             userData.put("guildRank", user.properties.get(Users.GUILD_RANK));
          }
 
-         JSONObject titleObj = new JSONObject();
-         Title title = (Integer) user.properties.get(Users.TITLE) >= 0 ? world.titles.get(user.properties.get(Users.TITLE)) : null;
-         if (title != null) {
-            titleObj.put("id", title.getId());
-            titleObj.put("Name", title.getName());
-            titleObj.put("Color", title.getColor());
-         }
-         userData.put("title", title);
+//         JSONObject titleObj = new JSONObject();
+//         Title title = (Integer) user.properties.get(Users.TITLE) >= 0 ? world.titles.get(user.properties.get(Users.TITLE)) : null;
+//         if (title != null) {
+//            titleObj.put("id", title.getId());
+//            titleObj.put("Name", title.getName());
+//            titleObj.put("Color", title.getColor());
+//         }
+//         userData.put("title", title);
 
          if (self) {
             QueryResult result1 = this.world.db.jdbc.query("SELECT HouseInfo, ActivationFlag, Gold, Coins, Exp, Country, Email, DateCreated, UpgradeExpire, Age, Upgraded FROM users WHERE id = ?", new Object[]{user.properties.get(Users.DATABASE_ID)});

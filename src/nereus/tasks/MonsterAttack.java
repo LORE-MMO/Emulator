@@ -4,14 +4,15 @@ import nereus.ai.MonsterAI;
 import nereus.db.objects.Aura;
 import nereus.db.objects.Monster;
 import nereus.db.objects.Skill;
+import nereus.db.objects.SkillAuras;
 import nereus.world.World;
+import com.google.common.collect.HashMultimap;
 import it.gotoandplay.smartfoxserver.SmartFoxServer;
 import it.gotoandplay.smartfoxserver.data.Room;
 import it.gotoandplay.smartfoxserver.data.User;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+
+import java.util.*;
+
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
@@ -19,6 +20,7 @@ public class MonsterAttack implements Runnable {
    private final Skill skill;
    private final MonsterAI monster;
    private final World world;
+   private static final Random rand = new Random();
    private final Room room;
 
    public MonsterAttack(MonsterAI monster, Skill skill, World world, Room room) {
@@ -84,9 +86,9 @@ public class MonsterAttack implements Runnable {
                      RemoveAura var35 = (RemoveAura)var33.next();
                      Aura userData = var35.getAura();
                      if(!userData.getCategory().equals("d")) {
-                        if(userData.selfCast) {
+                        if (userData.isskillcast()) {
                            monData *= (int)(1.0D - userData.getDamageTakenDecrease());
-                           monData = monData < 0?0:monData;
+                           monData = monData < 0 ? 0 : monData;
                         } else {
                            monData *= (int)(1.0D + userData.getDamageIncrease());
                         }
@@ -103,15 +105,34 @@ public class MonsterAttack implements Runnable {
                      this.monster.cancel();
                   }
 
-                  if (skill.hasAura()) {
-                     Iterator var17 = skill.auras.entrySet().iterator();
+                  Skill iniaura = world.skills.get(this.skill.getId());
+                  Iterator aurasefek = iniaura.auraskill.entries().iterator();
+                  HashMultimap auraresult = HashMultimap.create();
 
-                     while(var17.hasNext()) {
-                        Map.Entry<Integer, Integer> entry = (Map.Entry)var17.next();
-                        Aura aura = this.world.auras.get(entry.getKey());
-                        auras.add(this.monster.applyAura(this.world, m, aura.getId(), cInf, monData));
+                  while(aurasefek.hasNext()){
+                     Map.Entry<Integer, SkillAuras> entry = (Map.Entry)aurasefek.next();
+                     SkillAuras iniaurainfo = (SkillAuras)entry.getValue();
+                     int skillid = iniaurainfo.skillid;
+                     int iniauraid = iniaurainfo.auraid;
+
+                     Aura auratest = world.auras.get(iniauraid);
+                     double chanceaura = auratest.getApplychance();
+                     auraresult.put(iniauraid, chanceaura);
+                     if (!skill.isAuraRandom() && !iniaura.auraskill.isEmpty() && Math.random() < chanceaura) {
+                        auras.add(this.monster.applyAura(this.world, m, iniauraid, cInf, monData));
                      }
                   }
+                  if (auraresult.size() > 0) {
+                     ArrayList keys1 = new ArrayList(auraresult.keySet());
+                     int aid1 = (Integer)keys1.get(rand.nextInt(keys1.size()));
+                     Object[] rate1 = auraresult.get(aid1).toArray();
+                     Double rateValue = (Double)rate1[rand.nextInt(rate1.length)];
+                     if (skill.isAuraRandom() && aid1 > 0 && Math.random() < rateValue) {
+                        auras.add(this.monster.applyAura(this.world, m, aid1, cInf, monData));
+                     }
+                  }
+
+
 
                   JSONObject var36 = new JSONObject();
                   var36.put("hp", Integer.valueOf(monData));
