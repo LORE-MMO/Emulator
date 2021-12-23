@@ -355,17 +355,7 @@ public class Action implements IRequest {
                   var58.put("targets", var80);
                   world.users.die(var60);
                   user.properties.put("state", 1);
-                  world.db.jdbc.run("UPDATE users SET DeathCount = (DeathCount + 1)  WHERE id = ?", new Object[]{var60.properties.get("dbId")});
-                  world.db.jdbc.run("UPDATE users SET Gold = (Gold + " + 1000 + ") WHERE id = ?", new Object[]{user.properties.get("dbId")});
-                  auraid = world.db.jdbc.queryForInt("SELECT Gold FROM users WHERE id = ?", new Object[]{user.properties.get("dbId")});
-                  JSONObject guildhall = new JSONObject();
-                  guildhall.put("cmd", "addGoldExp");
-                  guildhall.put("intGold", 1000);
-                  guildhall.put("bitSuccess", 1);
-                  world.send(guildhall, user);
-                  world.send(new String[]{"moderator", "10,000 gold has been added to your bounty!"}, user);
-                  world.db.jdbc.run("UPDATE users SET KillCount = (KillCount + 1) WHERE id = ?", new Object[]{user.properties.get("dbId")});
-                  world.db.jdbc.run("UPDATE users SET Gold = (Gold + 10000) WHERE id = ?", new Object[]{user.properties.get("dbId")});
+
 //                  world.users.dropItem(user, 222156, 1);
                   if (area.isPvP()) {
                      Iterator var76 = area.items.iterator();
@@ -448,12 +438,6 @@ public class Action implements IRequest {
 
 
             if(skill.getLifeSteal() > 0.00) {
-               JSONObject lifesteal = new JSONObject();
-               lifesteal.put("hp", Integer.valueOf(-LifeSteal));
-               lifesteal.put("tInf", "p:"+user.getUserId());
-               lifesteal.put("type", crit ? "crit" : "hit");
-               a.add(lifesteal);
-
                User var60 = ExtensionHelper.instance().getUserById(user.getUserId());
                int userHealth = ((Integer) user.properties.get(Users.HP)).intValue() + LifeSteal;
                int userHealthMax = ((Integer) user.properties.get(Users.HP_MAX)).intValue();
